@@ -11,9 +11,9 @@ if enable_autoupdate then
   if updater_loaded then
     autoupdate_loaded, Update = pcall(Updater)
     if autoupdate_loaded then
-      Update.json_url = "https://raw.githubusercontent.com/qrlk/moonloader-script-updater/main/example.json?" .. tostring(os.clock())
+      Update.json_url = "https://raw.githubusercontent.com/qrlk/moonloader-script-updater/master/example.json?" .. tostring(os.clock())
       Update.prefix = "[" .. string.upper(thisScript().name) .. "]: "
-      Update.url = "https://github.com/moonloader-script-updater/main"
+      Update.url = "https://github.com/qrlk/moonloader-script-updater/"
     end
   end
 end
