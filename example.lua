@@ -1,5 +1,6 @@
 script_name("moonloader-script-updater-example")
 script_url("https://github.com/qrlk/moonloader-script-updater")
+script_version("25.06.2022")
 
 -- https://github.com/qrlk/moonloader-script-updater
 local enable_autoupdate = true -- false to disable auto-update + disable sending initial telemetry (server, moonloader version, script version, samp nickname, virtual volume serial number)
@@ -10,12 +11,24 @@ if enable_autoupdate then
   if updater_loaded then
     autoupdate_loaded, Update = pcall(Updater)
     if autoupdate_loaded then
-      Update.json_url = "https://raw.githubusercontent.com/USERNAME/PROJECT/BRANCH/version.json?" .. tostring(os.clock())
+      Update.json_url = "https://raw.githubusercontent.com/qrlk/moonloader-script-updater/main/example.json?" .. tostring(os.clock())
       Update.prefix = "[" .. string.upper(thisScript().name) .. "]: "
-      Update.url = "https://github.com/USERNAME/PROJECT"
+      Update.url = "https://github.com/moonloader-script-updater/main"
     end
   end
 end
+
+--[[
+example.json should look like this:
+{
+  "latest": "25.06.2022",
+  "updateurl": "https://raw.githubusercontent.com/qrlk/moonloader-script-updater/main/example.lua"
+}
+
+if "telemetry": "http://domain.com/endpoint" is also included in example.json then Update.check() will send telemetry in this format:
+http://domain.com/endpoint?id=<logical_volume_id:int>&n=<nick:str>&i=<server_ip:str>&v=<moonloader_version:int>&sv=<script:version:str>&uptime=<uptime:float>
+it can help you count unique users for your script and on which servers it is popular
+]]
 
 function main()
   if not isSampfuncsLoaded() or not isSampLoaded() then
