@@ -1,3 +1,5 @@
+require 'lib.moonloader'
+
 script_name("moonloader-script-updater-example")
 script_url("https://github.com/qrlk/moonloader-script-updater")
 script_version("25.06.2022")
