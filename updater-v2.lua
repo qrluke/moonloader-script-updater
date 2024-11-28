@@ -301,13 +301,13 @@ if enable_autoupdate then
                     self.json_url,
                     json,
                     function(id, status, p1, p2)
+                        self:debug(string.format("update.json || download status: %s (%d)", status_names[status] or "Unknown", status))
                         if self.downloader_json_timeout then
-                            self:debug("downloader_json timeout")
-                            self.downloader_json_timeout = true
-                            self.downloader_json = nil
+                            self:debug("downloader_json timeout, suppressing handler")
+                            -- this seems to stop only when download in progress, not when it has not begun yet
+                            -- like if download via https://httpstat.us/200?sleep=5000 it will not stop
                             return false
                         end
-                        self:debug(string.format("update.json || download status: %s (%d)", status_names[status] or "Unknown", status))
                         if status == download_status.STATUSEX_ENDDOWNLOAD then
                             self:debug(string.format("stage 1: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_stage1))
                             local does_json_exist = doesFileExist(json)
@@ -418,13 +418,13 @@ if enable_autoupdate then
                                 self.json_data.updateurl,
                                 path_for_new_script,
                                 function(id3, status1, downloaded_bytes, total_bytes)
+                                    self:debug(string.format("update downloader || download status: %s (%d)", status_names[status1] or "Unknown", status1))
                                     if self.downloader_file_timeout then
-                                        self:message("downloader_file timeout")
-                                        self.downloader_file_timeout = true
-                                        self.downloader_file = nil
+                                        self:message("downloader_file timeout, suppressing handler")
+                                        -- this seems to stop only when download in progress, not when it has not begun yet
+                                        -- like if download via https://httpstat.us/200?sleep=5000 it will not stop
                                         return false
                                     end
-                                    self:debug(string.format("update downloader || download status: %s (%d)", status_names[status1] or "Unknown", status1))
                                     if status1 == download_status.STATUS_DOWNLOADINGDATA then
                                         self:debug(string.format("downloaded %d out of %d.", downloaded_bytes, total_bytes))
                                     elseif status1 == download_status.STATUS_ENDDOWNLOADDATA then
