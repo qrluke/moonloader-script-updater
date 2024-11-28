@@ -279,7 +279,6 @@ if enable_autoupdate then
                 end
                 local json = os.tmpname()
                 local json_data = nil
-                local started = os.clock()
 
                 local downloader_json = nil
                 local downloader_json_timeout = false
@@ -299,6 +298,8 @@ if enable_autoupdate then
                 self:remove_file_if_exists(json, "temporary json")
 
                 self:debug(string.format("update.json || url: %s", self.json_url))
+                
+                local started_stage1 = os.clock()
                 self.downloader_json =
                     downloadUrlToFile(
                     self.json_url,
@@ -312,6 +313,7 @@ if enable_autoupdate then
                         end
                         self:debug(string.format("update.json || download status: %s (%d)", status_names[status] or "Unknown", status))
                         if status == download_status.STATUSEX_ENDDOWNLOAD then
+                            self:debug(string.format("stage 1: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_stage1))
                             local does_json_exist = doesFileExist(json)
                             if not does_json_exist then
                                 self:debug("json file does not exist")
@@ -399,9 +401,9 @@ if enable_autoupdate then
 
                 -- Wait for the download to complete or timeout after 10 seconds
                 while not stop_waiting_stage1 do
-                    self:debug(string.format("waiting in main() for 1s because of downloading update.json. time before timeout: %d seconds", 15 - math.floor(os.clock() - started)))
+                    self:debug(string.format("waiting in main() for 1s because of downloading update.json. time before timeout: %d seconds", 15 - math.floor(os.clock() - started_stage1)))
                     wait(1000)
-                    if os.clock() - started >= 15 and not need_stage2 then
+                    if os.clock() - started_stage1 >= 15 and not need_stage2 then
                         if self.url ~= "" then
                             self:message(string.format("Timeout while checking for updates. Please check manually at %s.", self.url))
                         else
@@ -411,11 +413,12 @@ if enable_autoupdate then
                         break
                     end
                 end
-                self:debug("waiting in main() for downloading update.json is over")
-                wait(250)
+                self:debug(string.format("stage 1 done (+waiting) in %.2f seconds", os.clock() - started_stage1))
+                wait(500)
+                local started_stage2 = os.clock()
+                
+                self:debug(string.format("starting stage 2, do we need it: %s", tostring(need_stage2)))
                 if need_stage2 and json_data then
-                    wait(250)
-                    self:debug("starting stage 2")
                     local success, err =
                         pcall(
                         function()
@@ -444,6 +447,7 @@ if enable_autoupdate then
                                         downloaded = true
                                         self:debug("Download completed.")
                                     elseif status1 == download_status.STATUSEX_ENDDOWNLOAD then
+                                        self:debug(string.format("stage 2: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_stage2))
                                         if not downloaded then
                                             error_stage_2("ERROR - Download failed.")
                                             return
@@ -507,15 +511,16 @@ if enable_autoupdate then
                     self:debug("done with downloader pcall", success, err)
 
                     while not stop_waiting_stage2 do
-                        self:debug(string.format("waiting in main() for 1s because new version is downloading. time before timeout: %d seconds", 60 - math.floor(os.clock() - started)))
+                        self:debug(string.format("waiting in main() for 1s because new version is downloading. time before timeout: %d seconds", 60 - math.floor(os.clock() - started_stage2)))
                         wait(1000)
-                        if os.clock() - started >= 60 then
+                        if os.clock() - started_stage2 >= 60 then
                             self:message("Giving up on waiting for new version to download. Cancelling downloader_file.")
                             downloader_file_timeout = true
                             break
                         end
                     end
                 end
+                self:debug(string.format("stage 2 done (+waiting) in %.2f seconds", os.clock() - started_stage2))
                 self:debug("waiting in main() for downloading new version is over")
                 self:debug("removing .old.bak if exists")
                 self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
@@ -603,7 +608,7 @@ function main()
     if autoupdate_loaded and enable_autoupdate and ScriptUpdater then
         print("ScriptUpdater result:", pcall(ScriptUpdater.check, ScriptUpdater))
     end
-    sampAddChatMessage("started", -1)
+    sampAddChatMessage("script started", -1)
     wait(3000)
     while true do
         wait(5000)
