@@ -517,10 +517,10 @@ if enable_autoupdate then
                             self:debug(string.format("TELEMETRY ERROR - %s", tostring(err)))
                         end
                     end
-                end
 
-                self:debug("removing .old.bak if exists")
-                self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
+                    self:debug("removing .old.bak if exists")
+                    self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
+                end
             end
 
             return ScriptUpdater
