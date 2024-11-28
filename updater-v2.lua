@@ -51,7 +51,7 @@ if enable_autoupdate then
                 end
                 local txt = table.concat(args, ", ")
                 if isSampAvailable() and isSampfuncsLoaded() then
-                    sampAddChatMessage(string.format("%sv%s | autoupdate: %s", self.prefix, thisScript().version, txt), -1)
+                    sampAddChatMessage(string.format("%sv%s | ScriptUpdater: %s", self.prefix, thisScript().version, txt), -1)
                 end
                 self:debug(txt)
             end
@@ -247,7 +247,7 @@ if enable_autoupdate then
                                 self:debug(pcall(self.openLink, self, link))
                             end
                         )
-                        self:message(string.format("If update fails, download manually using: %s", self.hard_command))
+                        self:message(string.format("If update fails, download manually using: /%s", self.hard_command))
                         self:message(string.format("It will open %s in your browser! Drop file in your script folder.", link))
                         self.hard_registered = true
                     end
@@ -333,13 +333,16 @@ if enable_autoupdate then
                                     stop_waiting_stage1 = true
                                     return
                                 else
-                                    self:log(string.format("update.json parsed successfully, latest version: %s", info.latest))
+                                    self:debug(string.format("update.json parsed successfully, latest version: %s", info.latest))
                                 end
 
                                 local is_update_available = info.latest ~= thisScript().version
                                 self:debug(string.format("current version from script: %s", thisScript().version))
                                 self:debug(string.format("latest version from update.json: %s", info.latest))
-                                self:log(string.format("update available: %s", tostring(is_update_available)))
+                                
+                                if not is_update_available then
+                                    self:log("No new version available, guess you're stuck with the old one for now! c:")
+                                end
 
                                 if is_update_available then
                                     need_stage2 = true
@@ -577,6 +580,12 @@ function main()
     end
 
     if autoupdate_loaded and enable_autoupdate and ScriptUpdater then
-        print(pcall(ScriptUpdater.check, ScriptUpdater))
+        print('ScriptUpdater result:', pcall(ScriptUpdater.check, ScriptUpdater))
+    end
+    sampAddChatMessage('started', -1)
+    wait(3000)
+    while true do
+        wait(5000)
+        ScriptUpdater:capture_event("test")
     end
 end
