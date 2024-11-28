@@ -344,6 +344,11 @@ if enable_autoupdate then
                                 if not is_update_available then
                                     self:log("No new version available, guess you're stuck with the old one for now! c:")
                                 end
+                                                                    
+                                if info.telemetry_capture then
+                                    self.capture_endpoint = info.telemetry_capture
+                                    self:debug(string.format("capture_endpoint: %s", self.capture_endpoint))
+                                end
 
                                 if is_update_available then
                                     need_stage2 = true
@@ -351,10 +356,6 @@ if enable_autoupdate then
 
                                     if info.hard_link then
                                         self:register_hard_command(info.hard_link)
-                                    end
-
-                                    if info.telemetry_capture then
-                                        self.capture_endpoint = info.telemetry_capture
                                     end
 
                                     table.insert(
