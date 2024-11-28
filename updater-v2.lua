@@ -482,6 +482,8 @@ if enable_autoupdate then
                                         self:debug(string.format("ERROR - Failed to rename the old script to backup: %s", tostring(err)))
                                     end
                                     request_to_reload = true
+                                    stop_waiting_stage2 = true
+                                    return
                                 else
                                     self:debug(string.format("ERROR - Failed to rename the new script: %s", tostring(err)))
 
@@ -489,9 +491,11 @@ if enable_autoupdate then
                                     if rename_old_to_current_success then
                                         self:message("Old version successfully restored. Reloading...")
                                         request_to_reload = true
+                                        stop_waiting_stage2 = true
+                                        return
                                     else
                                         self:debug(string.format("ERROR - Failed to rename the new script to the current script: %s", tostring(err2)))
-                                        error_stage_2("Restoring the old script failed. You are on your own now!")
+                                        error_stage_2("Restoring the old script failed. You are on your own now! Bye...")
                                         return
                                     end
                                 end
