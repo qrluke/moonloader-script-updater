@@ -55,7 +55,7 @@ if enable_autoupdate then
                     args[i] = tostring(v)
                 end
                 local txt = table.concat(args, ", ")
-                if isSampAvailable() and isSampfuncsLoaded() then
+                if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
                     sampAddChatMessage(string.format("%sv%s | ScriptUpdater: %s", self.prefix, thisScript().version, txt), -1)
                 end
                 self:debug(txt)
@@ -608,7 +608,7 @@ function main()
     if autoupdate_loaded and enable_autoupdate and ScriptUpdater then
         print("ScriptUpdater result:", pcall(ScriptUpdater.check, ScriptUpdater))
     end
-    if isSampfuncsLoaded() and isSampLoaded() then
+    if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
         sampAddChatMessage("script started", -1)
     end
     wait(3000)
