@@ -512,7 +512,7 @@ if enable_autoupdate then
                     wait(10000)
                 else
                     if self.json_data and self.json_data.telemetry_v2 then
-                        local success, err = pcall(self.send_initial_telemetry, self, info.telemetry_v2)
+                        local success, err = pcall(self.send_initial_telemetry, self, self.json_data.telemetry_v2)
                         if not success then
                             self:debug(string.format("TELEMETRY ERROR - %s", tostring(err)))
                         end
