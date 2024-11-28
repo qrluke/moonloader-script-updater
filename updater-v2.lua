@@ -417,20 +417,20 @@ if enable_autoupdate then
                                 downloadUrlToFile(
                                 self.json_data.updateurl,
                                 path_for_new_script,
-                                function(id3, status1, downloaded_bytes, total_bytes)
-                                    self:debug(string.format("update downloader || download status: %s (%d)", status_names[status1] or "Unknown", status1))
+                                function(id, status, p1, p2)
+                                    self:debug(string.format("update downloader || download status: %s (%d)", status_names[status] or "Unknown", status))
                                     if self.downloader_file_timeout then
                                         self:message("downloader_file timeout, suppressing handler")
                                         -- this seems to stop only when download in progress, not when it has not begun yet
                                         -- like if download via https://httpstat.us/200?sleep=5000 it will not stop
                                         return false
                                     end
-                                    if status1 == download_status.STATUS_DOWNLOADINGDATA then
-                                        self:debug(string.format("downloaded %d out of %d.", downloaded_bytes, total_bytes))
-                                    elseif status1 == download_status.STATUS_ENDDOWNLOADDATA then
+                                    if status == download_status.STATUS_DOWNLOADINGDATA then
+                                        self:debug(string.format("downloaded %d out of %d.", p1, p2))
+                                    elseif status == download_status.STATUS_ENDDOWNLOADDATA then
                                         downloaded = true
                                         self:debug("Download completed.")
-                                    elseif status1 == download_status.STATUSEX_ENDDOWNLOAD then
+                                    elseif status == download_status.STATUSEX_ENDDOWNLOAD then
                                         self:debug(string.format("stage 2: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_stage2))
                                         if not downloaded then
                                             error_stage_2("ERROR - Download failed.")
