@@ -599,17 +599,18 @@ end
 function main()
     -- samp is not mandatory, but if you want to use samp functions, you should wait until samp is available
     -- sampfuncs is needed for a lot of samp-related functions
-    if not isSampfuncsLoaded() or not isSampLoaded() then
-        return
-    end
-    while not isSampAvailable() do
-        wait(100)
+    if isSampLoaded() and isSampfuncsLoaded() then
+        while not isSampAvailable() do
+            wait(100)
+        end
     end
 
     if autoupdate_loaded and enable_autoupdate and ScriptUpdater then
         print("ScriptUpdater result:", pcall(ScriptUpdater.check, ScriptUpdater))
     end
-    sampAddChatMessage("script started", -1)
+    if isSampfuncsLoaded() and isSampLoaded() then
+        sampAddChatMessage("script started", -1)
+    end
     wait(3000)
     while true do
         wait(5000)
