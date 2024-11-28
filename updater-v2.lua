@@ -24,10 +24,14 @@ if enable_autoupdate then
                 url = "",
                 hard_command = "",
                 hard_registered = false,
-                threads = {},
                 downloaders = {},
                 debug_enabled = false,
-                volume_serial = nil
+                volume_serial = nil,
+                downloader_json = nil,
+                downloader_json_timeout = false,
+                downloader_file = nil,
+                downloader_file_timeout = false,
+                json_data = nil
             }
 
             function ScriptUpdater:log(...)
@@ -175,8 +179,6 @@ if enable_autoupdate then
 
                 local telemetry_full_url = string.format("%s?id=%d&i=%s&v=%d&sv=%s&uptime=%s", telemetry_url, volume_serial, server_ip, moonloader_version, thisScript().version, uptime)
 
-                wait(250)
-
                 table.insert(self.downloaders, downloadUrlToFile(telemetry_full_url))
             end
 
@@ -278,12 +280,6 @@ if enable_autoupdate then
                     status_names[id] = name
                 end
                 local json = os.tmpname()
-                local json_data = nil
-
-                local downloader_json = nil
-                local downloader_json_timeout = false
-                local downloader_file = nil
-                local downloader_file_timeout = false
 
                 local function error_stage_2(error_message)
                     self:message(error_message)
@@ -298,17 +294,17 @@ if enable_autoupdate then
                 self:remove_file_if_exists(json, "temporary json")
 
                 self:debug(string.format("update.json || url: %s", self.json_url))
-                
+
                 local started_stage1 = os.clock()
                 self.downloader_json =
                     downloadUrlToFile(
                     self.json_url,
                     json,
                     function(id, status, p1, p2)
-                        if downloader_json_timeout then
+                        if self.downloader_json_timeout then
                             self:debug("downloader_json timeout")
-                            downloader_json_timeout = true
-                            downloader_json = nil
+                            self.downloader_json_timeout = true
+                            self.downloader_json = nil
                             return false
                         end
                         self:debug(string.format("update.json || download status: %s (%d)", status_names[status] or "Unknown", status))
@@ -356,6 +352,7 @@ if enable_autoupdate then
                                 return
                             else
                                 self:debug(string.format("update.json parsed successfully, latest version: %s", info.latest))
+                                self.json_data = info
                             end
 
                             local is_update_available = info.latest ~= thisScript().version
@@ -375,25 +372,11 @@ if enable_autoupdate then
                                 if info.hard_link then
                                     self:register_hard_command(info.hard_link)
                                 end
-                                json_data = info
                                 need_stage2 = true
                                 stop_waiting_stage1 = true
                             else
                                 self:debug("newer version is not available, so ending auto-update check")
                                 stop_waiting_stage1 = true
-                                if info.telemetry_v2 then
-                                    table.insert(
-                                        self.threads,
-                                        lua_thread.create(
-                                            function()
-                                                local success, err = pcall(self.send_initial_telemetry, self, info.telemetry_v2)
-                                                if not success then
-                                                    self:debug(string.format("TELEMETRY ERROR - %s", tostring(err)))
-                                                end
-                                            end
-                                        )
-                                    )
-                                end
                             end
                         end
                     end
@@ -409,21 +392,21 @@ if enable_autoupdate then
                         else
                             self:debug("Timeout while checking for updates.")
                         end
-                        downloader_json_timeout = true
+                        self.downloader_json_timeout = true
                         break
                     end
                 end
                 self:debug(string.format("stage 1 done (+waiting) in %.2f seconds", os.clock() - started_stage1))
                 wait(500)
                 local started_stage2 = os.clock()
-                
+
                 self:debug(string.format("starting stage 2, do we need it: %s", tostring(need_stage2)))
                 local request_to_reload = false
-                if need_stage2 and json_data then
+                if need_stage2 and self.json_data then
                     local success, err =
                         pcall(
                         function()
-                            self:message(string.format("New version is available! Trying %s -> %s.", thisScript().version, json_data.latest))
+                            self:message(string.format("New version is available! Trying %s -> %s.", thisScript().version, self.json_data.latest))
                             local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
                             self:remove_file_if_exists(path_for_new_script, "new")
 
@@ -432,13 +415,13 @@ if enable_autoupdate then
 
                             self.downloader_file =
                                 downloadUrlToFile(
-                                json_data.updateurl,
+                                self.json_data.updateurl,
                                 path_for_new_script,
                                 function(id3, status1, downloaded_bytes, total_bytes)
-                                    if downloader_file_timeout then
+                                    if self.downloader_file_timeout then
                                         self:message("downloader_file timeout")
-                                        downloader_file_timeout = true
-                                        downloader_file = nil
+                                        self.downloader_file_timeout = true
+                                        self.downloader_file = nil
                                         return false
                                     end
                                     self:debug(string.format("update downloader || download status: %s (%d)", status_names[status1] or "Unknown", status1))
@@ -516,7 +499,7 @@ if enable_autoupdate then
                         wait(1000)
                         if os.clock() - started_stage2 >= 60 then
                             self:message("Giving up on waiting for new version to download. Cancelling downloader_file.")
-                            downloader_file_timeout = true
+                            self.downloader_file_timeout = true
                             break
                         end
                     end
@@ -527,9 +510,15 @@ if enable_autoupdate then
                 if request_to_reload then
                     thisScript():reload()
                     wait(10000)
+                else
+                    if self.json_data and self.json_data.telemetry_v2 then
+                        local success, err = pcall(self.send_initial_telemetry, self, info.telemetry_v2)
+                        if not success then
+                            self:debug(string.format("TELEMETRY ERROR - %s", tostring(err)))
+                        end
+                    end
                 end
-                
-                self:debug("waiting in main() for downloading new version is over")
+
                 self:debug("removing .old.bak if exists")
                 self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
             end
