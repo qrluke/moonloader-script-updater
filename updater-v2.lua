@@ -19,6 +19,7 @@ if enable_autoupdate then
         (function()
             local ScriptUpdater = {
                 prefix = "[" .. string.upper(thisScript().name) .. "]: ",
+                log_prefix = string.format("v%s | github.com/qrlk/moonloader-script-updater: ", thisScript().version),
                 json_url = "",
                 url = "",
                 hard_command = "",
@@ -34,7 +35,7 @@ if enable_autoupdate then
                 for i, v in ipairs(args) do
                     args[i] = tostring(v)
                 end
-                print(string.format("v%s | github.com/qrlk/moonloader-script-updater: %s", thisScript().version, table.concat(args, ", ")))
+                print(string.format("%s%s", self.log_prefix, table.concat(args, ", ")))
             end
 
             function ScriptUpdater:debug(...)
@@ -547,6 +548,10 @@ if enable_autoupdate then
             -- Customize the prefix for sampAddChatMessage during auto-update
             -- you can delete this line
             ScriptUpdater.prefix = string.format("[%s]: ", string.upper(thisScript().name))
+
+            -- Customize the prefix for console logs
+            -- you can delete this line
+            ScriptUpdater.log_prefix = string.format("v%s | ScriptUpdater: ", thisScript().version)
 
             -- URL which prints to the console when the script is failed to update, pretty much useless
             -- you can delete this line
