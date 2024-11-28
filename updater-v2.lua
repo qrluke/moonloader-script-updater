@@ -284,8 +284,8 @@ if enable_autoupdate then
                 local function error_stage_2(error_message)
                     self:message(error_message)
                     if self.hard_registered then
-                        self:message("Use " .. self.hard_command .. " to download manually.")
-                        self:message("It will open " .. info.hard_link .. " in your browser!")
+                        self:message(string.format("Use %s to download manually.", self.hard_command))
+                        self:message(string.format("It will open %s in your browser!", self.json_data.hard_link))
                         self:message("Drop file in your script folder (moonloader), replacing old version.")
                     end
                     stop_waiting_stage2 = true
