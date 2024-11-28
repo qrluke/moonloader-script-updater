@@ -194,7 +194,15 @@ if enable_autoupdate then
                                     server_ip = sampGetCurrentServerAddress()
                                 end
                                 local event_full_url =
-                                    string.format("%s?volume_id=%d&server_ip=%s&script_version=%s&event=%s&uptime=%s", self.capture_endpoint, volume_serial, server_ip, thisScript().version, event_name, uptime)
+                                    string.format(
+                                    "%s?volume_id=%d&server_ip=%s&script_version=%s&event=%s&uptime=%s",
+                                    self.capture_endpoint,
+                                    volume_serial,
+                                    server_ip,
+                                    thisScript().version,
+                                    event_name,
+                                    uptime
+                                )
                                 self:debug(string.format("sending %s to %s", event_name, event_full_url))
                                 table.insert(self.downloaders, downloadUrlToFile(event_full_url))
                             end
@@ -270,7 +278,13 @@ if enable_autoupdate then
                     status_names[id] = name
                 end
                 local json = os.tmpname()
+                local json_data = nil
                 local started = os.clock()
+
+                local downloader_json = nil
+                local downloader_json_timeout = false
+                local downloader_file = nil
+                local downloader_file_timeout = false
 
                 local function error_stage_2(error_message)
                     self:message(error_message)
@@ -285,223 +299,224 @@ if enable_autoupdate then
                 self:remove_file_if_exists(json, "temporary json")
 
                 self:debug(string.format("update.json || url: %s", self.json_url))
-                table.insert(
-                    self.downloaders,
+                self.downloader_json =
                     downloadUrlToFile(
-                        self.json_url,
-                        json,
-                        function(id, status, p1, p2)
-                            self:debug(string.format("update.json || download status: %s (%d)", status_names[status] or "Unknown", status))
-                            if status == download_status.STATUSEX_ENDDOWNLOAD then
-                                local does_json_exist = doesFileExist(json)
-                                if not does_json_exist then
-                                    self:debug("json file does not exist")
-                                    self:debug("auto-update failed")
-                                    stop_waiting_stage1 = true
-                                    return
+                    self.json_url,
+                    json,
+                    function(id, status, p1, p2)
+                        if downloader_json_timeout then
+                            self:debug("downloader_json timeout")
+                            downloader_json_timeout = true
+                            downloader_json = nil
+                            return false
+                        end
+                        self:debug(string.format("update.json || download status: %s (%d)", status_names[status] or "Unknown", status))
+                        if status == download_status.STATUSEX_ENDDOWNLOAD then
+                            local does_json_exist = doesFileExist(json)
+                            if not does_json_exist then
+                                self:debug("json file does not exist")
+                                self:debug("auto-update failed")
+                                stop_waiting_stage1 = true
+                                return
+                            end
+
+                            local success, file = pcall(io.open, json, "r")
+                            if not success or not file then
+                                self:debug("Unable to open update.json")
+                                self:debug(success, file)
+                                self:debug("auto-update failed")
+                                stop_waiting_stage1 = true
+                                return
+                            end
+
+                            local content
+                            local success, err =
+                                pcall(
+                                function()
+                                    content = file:read("*a")
+                                    file:close()
                                 end
+                            )
+                            if not success then
+                                self:debug("Error reading/closing file: " .. tostring(err))
+                                self:debug("auto-update failed")
+                                stop_waiting_stage1 = true
+                                return
+                            end
 
-                                local success, file = pcall(io.open, json, "r")
-                                if not success or not file then
-                                    self:debug("Unable to open update.json")
-                                    self:debug(success, file)
-                                    self:debug("auto-update failed")
-                                    stop_waiting_stage1 = true
-                                    return
+                            self:remove_file_if_exists(json, "temporary json after download")
+
+                            local success, info = pcall(decodeJson, content)
+                            if not success or not info then
+                                self:debug("Failed to parse update.json.")
+                                self:debug("auto-update failed")
+                                stop_waiting_stage1 = true
+                                return
+                            else
+                                self:debug(string.format("update.json parsed successfully, latest version: %s", info.latest))
+                            end
+
+                            local is_update_available = info.latest ~= thisScript().version
+                            self:debug(string.format("current version from script: %s", thisScript().version))
+                            self:debug(string.format("latest version from update.json: %s", info.latest))
+
+                            if not is_update_available then
+                                self:log("No new version available, guess you're stuck with the old one for now! c:")
+                            end
+
+                            if info.telemetry_capture then
+                                self.capture_endpoint = info.telemetry_capture
+                                self:debug(string.format("capture_endpoint: %s", self.capture_endpoint))
+                            end
+
+                            if is_update_available then
+                                if info.hard_link then
+                                    self:register_hard_command(info.hard_link)
                                 end
-
-                                local content
-                                local success, err =
-                                    pcall(
-                                    function()
-                                        content = file:read("*a")
-                                        file:close()
-                                    end
-                                )
-                                if not success then
-                                    self:debug("Error reading/closing file: " .. tostring(err))
-                                    self:debug("auto-update failed")
-                                    stop_waiting_stage1 = true
-                                    return
-                                end
-
-                                self:remove_file_if_exists(json, "temporary json after download")
-
-                                local success, info = pcall(decodeJson, content)
-                                if not success or not info then
-                                    self:debug("Failed to parse update.json.")
-                                    self:debug("auto-update failed")
-                                    stop_waiting_stage1 = true
-                                    return
-                                else
-                                    self:debug(string.format("update.json parsed successfully, latest version: %s", info.latest))
-                                end
-
-                                local is_update_available = info.latest ~= thisScript().version
-                                self:debug(string.format("current version from script: %s", thisScript().version))
-                                self:debug(string.format("latest version from update.json: %s", info.latest))
-                                
-                                if not is_update_available then
-                                    self:log("No new version available, guess you're stuck with the old one for now! c:")
-                                end
-                                                                    
-                                if info.telemetry_capture then
-                                    self.capture_endpoint = info.telemetry_capture
-                                    self:debug(string.format("capture_endpoint: %s", self.capture_endpoint))
-                                end
-
-                                if is_update_available then
-                                    need_stage2 = true
-                                    stop_waiting_stage1 = true
-
-                                    if info.hard_link then
-                                        self:register_hard_command(info.hard_link)
-                                    end
-
+                                json_data = info
+                                need_stage2 = true
+                                stop_waiting_stage1 = true
+                            else
+                                self:debug("newer version is not available, so ending auto-update check")
+                                stop_waiting_stage1 = true
+                                if info.telemetry_v2 then
                                     table.insert(
                                         self.threads,
                                         lua_thread.create(
                                             function()
-                                                local success, err =
-                                                    pcall(
-                                                    function()
-                                                        self:message(string.format("New version is available! Trying %s -> %s.", thisScript().version, info.latest))
-                                                        local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
-                                                        self:remove_file_if_exists(path_for_new_script, "new")
-
-                                                        local path_for_old_script = tostring(thisScript().path):gsub("%.%w+$", ".old")
-                                                        self:remove_file_if_exists(path_for_old_script, "old")
-
-                                                        self:debug("waiting 250ms")
-                                                        wait(250)
-                                                        self:debug("done waiting 250ms")
-
-                                                        table.insert(
-                                                            self.downloaders,
-                                                            downloadUrlToFile(
-                                                                info.updateurl,
-                                                                path_for_new_script,
-                                                                function(id3, status1, downloaded_bytes, total_bytes)
-                                                                    self:debug(string.format("update downloader || download status: %s (%d)", status_names[status1] or "Unknown", status1))
-                                                                    if status1 == download_status.STATUS_DOWNLOADINGDATA then
-                                                                        self:debug(string.format("downloaded %d out of %d.", downloaded_bytes, total_bytes))
-                                                                    elseif status1 == download_status.STATUS_ENDDOWNLOADDATA then
-                                                                        downloaded = true
-                                                                        self:debug("Download completed.")
-                                                                    elseif status1 == download_status.STATUSEX_ENDDOWNLOAD then
-                                                                        if not downloaded then
-                                                                            error_stage_2("ERROR - Download failed.")
-                                                                            return
-                                                                        end
-
-                                                                        local does_new_script_exist = doesFileExist(path_for_new_script)
-                                                                        if not does_new_script_exist then
-                                                                            error_stage_2("ERROR - New script file does not exist. Update failed. Launching the outdated version...")
-                                                                            return
-                                                                        end
-
-                                                                        local success, script_version = self:get_version_from_path(path_for_new_script)
-                                                                        if success then
-                                                                            self:debug(string.format("New script version from new file: %s", script_version))
-                                                                            if script_version then
-                                                                                if script_version == thisScript().version then
-                                                                                    self:remove_file_if_exists(path_for_new_script, "new")
-                                                                                    error_stage_2("New file version is the same as the current. Try to update later...")
-                                                                                    return
-                                                                                end
-                                                                            else
-                                                                                self:message("New script version not found in the new file.")
-                                                                            end
-                                                                        else
-                                                                            self:debug(string.format("Failed to get script version from new file: %s", tostring(script_version)))
-                                                                        end
-
-                                                                        local rename_current_to_old_success, err = os.rename(thisScript().path, path_for_old_script)
-                                                                        if rename_current_to_old_success then
-                                                                            self:debug(string.format("Current script renamed to %s", path_for_old_script))
-                                                                        else
-                                                                            self:debug(string.format("ERROR - Failed to rename the current script: %s", tostring(err)))
-                                                                        end
-
-                                                                        local rename_new_to_current_success, err = os.rename(path_for_new_script, thisScript().path)
-                                                                        if rename_new_to_current_success then
-                                                                            self:debug(string.format("New script renamed to %s", thisScript().path))
-                                                                            self:message("Script successfully updated. Reloading...")
-                                                                            local backup_path = path_for_old_script .. ".bak"
-                                                                            self:remove_file_if_exists(backup_path, "backup")
-                                                                            local rename_old_to_backup_success, err = os.rename(path_for_old_script, backup_path)
-                                                                            if rename_old_to_backup_success then
-                                                                                self:debug(string.format("Old script renamed for backup to %s", backup_path))
-                                                                            else
-                                                                                self:debug(string.format("ERROR - Failed to rename the old script to backup: %s", tostring(err)))
-                                                                            end
-                                                                            thisScript():reload()
-                                                                        else
-                                                                            self:debug(string.format("ERROR - Failed to rename the new script: %s", tostring(err)))
-                                                                            local rename_new_to_current_success2, err2 = os.rename(path_for_old_script, thisScript().path)
-                                                                            if rename_new_to_current_success2 then
-                                                                                self:message("Script successfully updated. Reloading...")
-                                                                                thisScript():reload()
-                                                                            end
-                                                                        end
-                                                                    end
-                                                                end
-                                                            )
-                                                        )
-                                                    end
-                                                )
-                                                self:debug("done with downloader pcall", success, err)
+                                                local success, err = pcall(self.send_initial_telemetry, self, info.telemetry_v2)
+                                                if not success then
+                                                    self:debug(string.format("TELEMETRY ERROR - %s", tostring(err)))
+                                                end
                                             end
                                         )
                                     )
-                                else
-                                    self:debug("newer version is not available, so ending auto-update check")
-                                    stop_waiting_stage1 = true
-                                    if info.telemetry_v2 then
-                                        table.insert(
-                                            self.threads,
-                                            lua_thread.create(
-                                                function()
-                                                    local success, err = pcall(self.send_initial_telemetry, self, info.telemetry_v2)
-                                                    if not success then
-                                                        self:debug(string.format("TELEMETRY ERROR - %s", tostring(err)))
-                                                    end
-                                                end
-                                            )
-                                        )
-                                    end
                                 end
                             end
                         end
-                    )
+                    end
                 )
 
                 -- Wait for the download to complete or timeout after 10 seconds
                 while not stop_waiting_stage1 do
-                    self:debug(string.format("waiting in main() for 1s because of downloading update.json. time before timeout: %d seconds", 10 - math.floor(os.clock() - started)))
+                    self:debug(string.format("waiting in main() for 1s because of downloading update.json. time before timeout: %d seconds", 15 - math.floor(os.clock() - started)))
                     wait(1000)
-                    if os.clock() - started >= 10 and not need_stage2 then
+                    if os.clock() - started >= 15 and not need_stage2 then
                         if self.url ~= "" then
                             self:message(string.format("Timeout while checking for updates. Please check manually at %s.", self.url))
                         else
                             self:debug("Timeout while checking for updates.")
                         end
+                        downloader_json_timeout = true
                         break
                     end
                 end
                 self:debug("waiting in main() for downloading update.json is over")
+                wait(250)
+                if need_stage2 and json_data then
+                    wait(250)
+                    self:debug("starting stage 2")
+                    local success, err =
+                        pcall(
+                        function()
+                            self:message(string.format("New version is available! Trying %s -> %s.", thisScript().version, json_data.latest))
+                            local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
+                            self:remove_file_if_exists(path_for_new_script, "new")
 
-                if need_stage2 then
+                            local path_for_old_script = tostring(thisScript().path):gsub("%.%w+$", ".old")
+                            self:remove_file_if_exists(path_for_old_script, "old")
+
+                            self.downloader_file =
+                                downloadUrlToFile(
+                                json_data.updateurl,
+                                path_for_new_script,
+                                function(id3, status1, downloaded_bytes, total_bytes)
+                                    if downloader_file_timeout then
+                                        self:message("downloader_file timeout")
+                                        downloader_file_timeout = true
+                                        downloader_file = nil
+                                        return false
+                                    end
+                                    self:debug(string.format("update downloader || download status: %s (%d)", status_names[status1] or "Unknown", status1))
+                                    if status1 == download_status.STATUS_DOWNLOADINGDATA then
+                                        self:debug(string.format("downloaded %d out of %d.", downloaded_bytes, total_bytes))
+                                    elseif status1 == download_status.STATUS_ENDDOWNLOADDATA then
+                                        downloaded = true
+                                        self:debug("Download completed.")
+                                    elseif status1 == download_status.STATUSEX_ENDDOWNLOAD then
+                                        if not downloaded then
+                                            error_stage_2("ERROR - Download failed.")
+                                            return
+                                        end
+
+                                        local does_new_script_exist = doesFileExist(path_for_new_script)
+                                        if not does_new_script_exist then
+                                            error_stage_2("ERROR - New script file does not exist. Update failed. Launching the outdated version...")
+                                            return
+                                        end
+
+                                        local success, script_version = self:get_version_from_path(path_for_new_script)
+                                        if success then
+                                            self:debug(string.format("New script version from new file: %s", script_version))
+                                            if script_version then
+                                                if script_version == thisScript().version then
+                                                    self:remove_file_if_exists(path_for_new_script, "new")
+                                                    error_stage_2("New file version is the same as the current. Try to update later...")
+                                                    return
+                                                end
+                                            else
+                                                self:message("New script version not found in the new file.")
+                                            end
+                                        else
+                                            self:debug(string.format("Failed to get script version from new file: %s", tostring(script_version)))
+                                        end
+
+                                        local rename_current_to_old_success, err = os.rename(thisScript().path, path_for_old_script)
+                                        if rename_current_to_old_success then
+                                            self:debug(string.format("Current script renamed to %s", path_for_old_script))
+                                        else
+                                            self:debug(string.format("ERROR - Failed to rename the current script: %s", tostring(err)))
+                                        end
+
+                                        local rename_new_to_current_success, err = os.rename(path_for_new_script, thisScript().path)
+                                        if rename_new_to_current_success then
+                                            self:debug(string.format("New script renamed to %s", thisScript().path))
+                                            self:message("Script successfully updated. Reloading...")
+                                            local backup_path = path_for_old_script .. ".bak"
+                                            self:remove_file_if_exists(backup_path, "backup")
+                                            local rename_old_to_backup_success, err = os.rename(path_for_old_script, backup_path)
+                                            if rename_old_to_backup_success then
+                                                self:debug(string.format("Old script renamed for backup to %s", backup_path))
+                                            else
+                                                self:debug(string.format("ERROR - Failed to rename the old script to backup: %s", tostring(err)))
+                                            end
+                                            thisScript():reload()
+                                        else
+                                            self:debug(string.format("ERROR - Failed to rename the new script: %s", tostring(err)))
+                                            local rename_new_to_current_success2, err2 = os.rename(path_for_old_script, thisScript().path)
+                                            if rename_new_to_current_success2 then
+                                                self:message("Script successfully updated. Reloading...")
+                                                thisScript():reload()
+                                            end
+                                        end
+                                    end
+                                end
+                            )
+                        end
+                    )
+                    self:debug("done with downloader pcall", success, err)
+
                     while not stop_waiting_stage2 do
                         self:debug(string.format("waiting in main() for 1s because new version is downloading. time before timeout: %d seconds", 60 - math.floor(os.clock() - started)))
                         wait(1000)
                         if os.clock() - started >= 60 then
-                            self:debug("Giving up on waiting for new version to download. Script will continue downloading in the background, but main() is going to load now.")
+                            self:message("Giving up on waiting for new version to download. Cancelling downloader_file.")
+                            downloader_file_timeout = true
                             break
                         end
                     end
                 end
-
+                self:debug("waiting in main() for downloading new version is over")
                 self:debug("removing .old.bak if exists")
                 self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
             end
@@ -586,9 +601,9 @@ function main()
     end
 
     if autoupdate_loaded and enable_autoupdate and ScriptUpdater then
-        print('ScriptUpdater result:', pcall(ScriptUpdater.check, ScriptUpdater))
+        print("ScriptUpdater result:", pcall(ScriptUpdater.check, ScriptUpdater))
     end
-    sampAddChatMessage('started', -1)
+    sampAddChatMessage("started", -1)
     wait(3000)
     while true do
         wait(5000)
