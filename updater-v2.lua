@@ -418,6 +418,7 @@ if enable_autoupdate then
                 local started_stage2 = os.clock()
                 
                 self:debug(string.format("starting stage 2, do we need it: %s", tostring(need_stage2)))
+                local request_to_reload = false
                 if need_stage2 and json_data then
                     local success, err =
                         pcall(
@@ -494,13 +495,13 @@ if enable_autoupdate then
                                             else
                                                 self:debug(string.format("ERROR - Failed to rename the old script to backup: %s", tostring(err)))
                                             end
-                                            thisScript():reload()
+                                            request_to_reload = true
                                         else
                                             self:debug(string.format("ERROR - Failed to rename the new script: %s", tostring(err)))
                                             local rename_new_to_current_success2, err2 = os.rename(path_for_old_script, thisScript().path)
                                             if rename_new_to_current_success2 then
                                                 self:message("Script successfully updated. Reloading...")
-                                                thisScript():reload()
+                                                request_to_reload = true
                                             end
                                         end
                                     end
@@ -521,6 +522,13 @@ if enable_autoupdate then
                     end
                 end
                 self:debug(string.format("stage 2 done (+waiting) in %.2f seconds", os.clock() - started_stage2))
+
+                wait(500)
+                if request_to_reload then
+                    thisScript():reload()
+                    wait(10000)
+                end
+                
                 self:debug("waiting in main() for downloading new version is over")
                 self:debug("removing .old.bak if exists")
                 self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
