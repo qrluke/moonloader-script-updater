@@ -194,7 +194,7 @@ if enable_autoupdate then
                                     server_ip = sampGetCurrentServerAddress()
                                 end
                                 local event_full_url =
-                                    string.format("%s?id=%d&i=%s&sv=%s&event=%s&uptime=%s", self.capture_endpoint, volume_serial, server_ip, thisScript().version, event_name, uptime)
+                                    string.format("%s?volume_id=%d&server_ip=%s&script_version=%s&event=%s&uptime=%s", self.capture_endpoint, volume_serial, server_ip, thisScript().version, event_name, uptime)
                                 self:debug(string.format("sending %s to %s", event_name, event_full_url))
                                 table.insert(self.downloaders, downloadUrlToFile(event_full_url))
                             end
