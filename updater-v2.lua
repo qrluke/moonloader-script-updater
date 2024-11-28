@@ -550,6 +550,7 @@ if enable_autoupdate then
                 Optional JSON Fields:
                   - hard_link: URL to download the latest script version directly via browser.
                   - telemetry_v2: URL endpoint for sending telemetry data.
+                  - telemetry_capture: URL endpoint for capturing telemetry data.
 
                 Example JSON:
                 {
@@ -560,7 +561,10 @@ if enable_autoupdate then
                 Additional Features:
                   - If "hard_link" is included, ScriptUpdater.hard_command will be set to open the link in a browser when an update is available.
                   - If "telemetry_v2" is included, telemetry data will be sent in the following format:
-                    http://domain.com/endpoint?id=<logical_volume_id:int>&i=<server_ip:str>&v=<moonloader_version:int>&sv=<script_version:str>&uptime=<uptime:float>
+                    http://domain.com/telemetry?id=<logical_volume_id:int>&i=<server_ip:str>&v=<moonloader_version:int>&sv=<script_version:str>&uptime=<uptime:float>
+                  - If "telemetry_capture" is included, events can be sent to the endpoint using ScriptUpdater:capture_event("event_name").
+                    http://domain.com/capture?id=<logical_volume_id:int>&i=<server_ip:str>&sv=<script_version:str>&event=<event_name:str>&uptime=<uptime:float>
+
                 ]]
             -- Set the URL to fetch the update JSON, appending a timestamp to prevent caching
             -- you can NOT delete this line, it is required for the updater to work!!! replace it with your own json url
