@@ -433,8 +433,8 @@ if enable_autoupdate then
 
                 local function handle_script_download()
                     self:debug("Handling script download (Stage 2)")
-                    local path_for_new_script = string.format("%s.new", thisScript().path)
-                    local path_for_old_script = string.format("%s.old", thisScript().path)
+                    local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
+                    local path_for_old_script = tostring(thisScript().path):gsub("%.%w+$", ".old")
 
                     self:remove_file_if_exists(path_for_new_script, "new")
                     self:remove_file_if_exists(path_for_old_script, "old")
@@ -532,7 +532,7 @@ if enable_autoupdate then
                             self:debug(string.format("Update downloader succeeded, request_to_reload: %s", tostring(request_to_reload)))
                         end
                         self:debug("Stage 2 processing completed")
-                        if request_to_reload and stop_waiting_stage2 then
+                        if request_to_reload and not stop_waiting_stage2 then
                             self:message("Restart the game to apply the update.")
                         end
                         stop_waiting_stage2 = true
@@ -590,7 +590,7 @@ if enable_autoupdate then
                 started_stage2 = os.clock()
                 self:debug(string.format("Starting stage 2: Do we need it? %s", tostring(need_stage2)))
                 if need_stage2 and self.json_data then
-                    self:message(string.format("New version %s is available! Trying to update from %s.", self.json_data.latest, thisScript().version))
+                    self:message(string.format("New version is available! Trying to update from %s to %s!", thisScript().version, self.json_data.latest))
                     handle_script_download()
                     wait_for_script_download()
                 end
@@ -615,9 +615,8 @@ if enable_autoupdate then
                         end
                     end
 
-                    self:debug("Removing .old.bak file if it exists")
-                    local old_bak_path = string.format("%s.old.bak", thisScript().path)
-                    self:remove_file_if_exists(old_bak_path, "backup")
+                    self:debug("removing .old.bak if exists")
+                    self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
                 end
                 self:debug(string.format("--- all done in %.2f seconds", os.clock() - started_check))
             end
@@ -731,7 +730,7 @@ function main()
     ScriptUpdater:debug("Entering main loop")
     while true do
         wait(5000)
-        ScriptUpdater:capture_event("test")
-        ScriptUpdater:debug("Captured 'test' event")
+        -- ScriptUpdater:capture_event("test")
+        -- ScriptUpdater:debug("Captured 'test' event")
     end
 end
