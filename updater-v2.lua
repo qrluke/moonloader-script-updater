@@ -590,8 +590,7 @@ if enable_autoupdate then
                 started_stage2 = os.clock()
                 self:debug(string.format("Starting stage 2: Do we need it? %s", tostring(need_stage2)))
                 if need_stage2 and self.json_data then
-                    self:message("New version is available!")
-                    self:message(string.format("Trying to update from %s to %s...", thisScript().version, self.json_data.latest))
+                    self:message(string.format("New version is available! Trying to update from %s to %s!", thisScript().version, self.json_data.latest))
                     handle_script_download()
                     wait_for_script_download()
                 end
