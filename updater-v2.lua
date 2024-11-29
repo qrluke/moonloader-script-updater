@@ -641,7 +641,7 @@ if enable_autoupdate then
             ScriptUpdater.url = "https://github.com/qrlk/moonloader-script-updater/"
 
             -- Enable or disable debug messages in the console (recommended to set to false in production)
-            -- Default: true
+            -- Default: false
             -- you can delete this line
             ScriptUpdater.debug_enabled = true
 
