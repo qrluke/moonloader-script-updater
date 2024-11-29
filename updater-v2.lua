@@ -316,75 +316,76 @@ if enable_autoupdate then
                 local started_stage2 = nil
 
                 local function handle_json_download()
+                    local started_downloader
+
                     self:remove_file_if_exists(json_path, "temporary json")
                     self:debug(string.format("update.json || url: %s", self.json_url))
 
-                    started_downloader = os.clock()
-                    self.downloader_json =
-                        downloadUrlToFile(
-                        self.json_url,
-                        json_path,
-                        function(id, status, p1, p2)
-                            self:debug(string.format("update.json || download status: %s (%d)", self.status_names[status] or "Unknown", status))
+                    local function on_exit_1()
+                        local status, result =
+                            pcall(
+                            function()
+                                self:debug(string.format("stage 1: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_downloader))
 
-                            if self.downloader_json_timeout then
-                                self:debug("downloader_json timeout, suppressing handler")
-                                return false
+                                if not doesFileExist(json_path) then
+                                    error("json file does not exist")
+                                end
+
+                                local file = io.open(json_path, "r")
+                                if not file then
+                                    error("unable to open json file")
+                                end
+
+                                self:debug("reading json file")
+                                local content = file:read("*a")
+                                file:close()
+                                self:debug("json file read")
+
+                                self:remove_file_if_exists(json_path, "temporary json after download")
+                                self:debug("decoding json...")
+                                return decodeJson(content)
+                            end
+                        )
+                        if status then
+                            self.json_data = result
+
+                            local is_update_available = self.json_data.latest ~= thisScript().version
+                            self:debug(string.format("current version from script: %s", thisScript().version))
+                            self:debug(string.format("latest version from update.json: %s", self.json_data.latest))
+
+                            if not is_update_available then
+                                self:log("No new version available, guess you're stuck with the old one for now! c:")
                             end
 
-                            if status == self.download_status.STATUSEX_ENDDOWNLOAD then
-                                local status, result =
-                                    pcall(
-                                    function()
-                                        self:debug(
-                                            string.format("stage 1: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_downloader)
-                                        )
-
-                                        if not doesFileExist(json_path) then
-                                            error("json file does not exist")
-                                        end
-
-                                        local file = io.open(json_path, "r")
-                                        if not file then
-                                            error("unable to open json file")
-                                        end
-
-                                        self:debug("reading json file")
-                                        local content = file:read("*a")
-                                        file:close()
-                                        self:debug("json file read")
-
-                                        self:remove_file_if_exists(json_path, "temporary json after download")
-                                        self:debug("decoding json...")
-                                        return decodeJson(content)
-                                    end
-                                )
-                                if status then
-                                    self.json_data = result
-
-                                    local is_update_available = self.json_data.latest ~= thisScript().version
-                                    self:debug(string.format("current version from script: %s", thisScript().version))
-                                    self:debug(string.format("latest version from update.json: %s", self.json_data.latest))
-
-                                    if not is_update_available then
-                                        self:log("No new version available, guess you're stuck with the old one for now! c:")
-                                    end
-
-                                    if is_update_available then
-                                        self:debug("newer version is available, marking stage 2 as needed")
-                                        need_stage2 = true
-                                    else
-                                        self:debug("newer version is not available, so ending auto-update check")
-                                    end
-                                end
-                                if not status then
-                                    self:message(string.format("update.json failure: %s", tostring(result)))
-                                end
-                                self:debug("end of stage 1")
-                                stop_waiting_stage1 = true
+                            if is_update_available then
+                                self:debug("newer version is available, marking stage 2 as needed")
+                                need_stage2 = true
+                            else
+                                self:debug("newer version is not available, so ending auto-update check")
                             end
                         end
-                    )
+                        if not status then
+                            self:message(string.format("update.json failure: %s", tostring(result)))
+                        end
+                        self:debug("end of stage 1")
+                        stop_waiting_stage1 = true
+                    end
+
+                    local function downloader_handler_json(id, status, p1, p2)
+                        self:debug(string.format("update.json || download status: %s (%d)", self.status_names[status] or "Unknown", status))
+
+                        if self.downloader_json_timeout then
+                            self:debug("downloader_json timeout, suppressing handler")
+                            return false
+                        end
+
+                        if status == self.download_status.STATUSEX_ENDDOWNLOAD then
+                            on_exit_1()
+                        end
+                    end
+
+                    started_downloader = os.clock()
+                    self.downloader_json = downloadUrlToFile(self.json_url, json_path, downloader_handler_json)
                 end
 
                 local function wait_for_json_download()
@@ -401,129 +402,134 @@ if enable_autoupdate then
                 end
 
                 local function handle_script_download()
+                    local started_downloader
+
                     local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
                     local path_for_old_script = tostring(thisScript().path):gsub("%.%w+$", ".old")
 
                     self:remove_file_if_exists(path_for_new_script, "new")
                     self:remove_file_if_exists(path_for_old_script, "old")
                     self:debug("starting downloader for stage 2")
-                    local started_downloader = os.clock()
-                    self.downloader_file =
-                        downloadUrlToFile(
-                        self.json_data.updateurl,
-                        path_for_new_script,
-                        function(id, status, p1, p2)
-                            self:debug(string.format("update downloader || download status: %s (%d)", self.status_names[status] or "Unknown", status))
 
-                            if self.downloader_file_timeout then
-                                self:message("downloader_file timeout, suppressing handler")
-                                return false
-                            end
+                    local function on_exit_2()
+                        self:debug(string.format("stage 2: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_downloader))
 
-                            if status == self.download_status.STATUS_DOWNLOADINGDATA then
-                                self:debug(string.format("new_file_downloaded %d out of %d.", p1, p2))
-                            elseif status == self.download_status.STATUS_ENDDOWNLOADDATA then
-                                self:debug("marking download as completed")
-                                new_file_downloaded = true
-                                self:debug("download completed.")
-                            elseif status == self.download_status.STATUSEX_ENDDOWNLOAD then
-                                self:debug(string.format("stage 2: STATUSEX_ENDDOWNLOAD done in %.2f seconds", os.clock() - started_downloader))
+                        local success, err =
+                            pcall(
+                            function()
+                                if not new_file_downloaded then
+                                    error("ERROR - Download failed. Aborting the update...")
+                                end
 
-                                local success, err =
-                                    pcall(
-                                    function()
-                                        if not new_file_downloaded then
-                                            error("ERROR - Download failed. Aborting the update...")
-                                        end
+                                if not doesFileExist(path_for_new_script) then
+                                    error("ERROR - New script file does not exist. Aborting the update...")
+                                end
 
-                                        if not doesFileExist(path_for_new_script) then
-                                            error("ERROR - New script file does not exist. Aborting the update...")
-                                        end
-
-                                        if self.check_for_new_version then
-                                            self:debug("parsing new script version")
-                                            local success, new_script_version = pcall(self.get_version_from_path, self, path_for_new_script)
-                                            if success then
-                                                self:debug(string.format("New script version from new file: %s", tostring(new_script_version)))
-                                                if new_script_version then
-                                                    if new_script_version == thisScript().version then
-                                                        self:remove_file_if_exists(path_for_new_script, "new")
-                                                        -- cdn cache issue, no need to manual download
-                                                        self:debug("cdn cache issue, no need to manual download, removing self.json_data.hard_link")
-                                                        self.json_data.hard_link = nil
-                                                        error("ERROR - New file version is the same as the current. Try again later.")
-                                                    end
-                                                else
-                                                    self:message("New script version not found in the new file.")
-                                                end
-                                            else
-                                                self:debug(string.format("Failed to get script version from new file: %s", tostring(script_version)))
+                                if self.check_for_new_version then
+                                    self:debug("parsing new script version")
+                                    local success, new_script_version = pcall(self.get_version_from_path, self, path_for_new_script)
+                                    if success then
+                                        self:debug(string.format("New script version from new file: %s", tostring(new_script_version)))
+                                        if new_script_version then
+                                            if new_script_version == thisScript().version then
+                                                self:remove_file_if_exists(path_for_new_script, "new")
+                                                -- cdn cache issue, no need to manual download
+                                                self:debug("cdn cache issue, no need to manual download, removing self.json_data.hard_link")
+                                                self.json_data.hard_link = nil
+                                                error("ERROR - New file version is the same as the current. Try again later.")
                                             end
-                                        end
-
-                                        local rename_current_to_old_success, err = os.rename(thisScript().path, path_for_old_script)
-                                        if rename_current_to_old_success then
-                                            self:debug(string.format("Current script renamed to %s", path_for_old_script))
                                         else
-                                            self:log(string.format("ERROR - Failed to rename the current script: %s", tostring(err)))
-                                            error("ERROR - could not rename the current script to .old")
+                                            self:message("New script version not found in the new file.")
                                         end
-
-                                        local rename_new_to_current_success, err = os.rename(path_for_new_script, thisScript().path)
-                                        if rename_new_to_current_success then
-                                            self:debug(string.format("New script renamed to %s", thisScript().path))
-                                            self:message("Script successfully updated. Reloading...")
-
-                                            local backup_path = path_for_old_script .. ".bak"
-                                            self:remove_file_if_exists(backup_path, "backup")
-
-                                            local rename_old_to_backup_success, err = os.rename(path_for_old_script, backup_path)
-                                            if rename_old_to_backup_success then
-                                                self:debug(string.format("Old script renamed for backup to %s", backup_path))
-                                            else
-                                                self:debug(string.format("Failed to rename the old script to backup: %s", tostring(err)))
-                                            end
-
-                                            request_to_reload = true
-                                        else
-                                            self:debug(string.format("ERROR - Failed to rename the new script: %s", tostring(err)))
-
-                                            local rename_old_to_current_success, err2 = os.rename(path_for_old_script, thisScript().path)
-                                            if rename_old_to_current_success then
-                                                error("Failed to apply the update. Old version was restored.")
-                                            else
-                                                self:debug(string.format("Failed to rename the new script to the current script: %s", tostring(err2)))
-                                                error("CRITICAL ERROR - Restoring the old script failed: " .. tostring(err2))
-                                            end
-                                        end
+                                    else
+                                        self:debug(string.format("Failed to get script version from new file: %s", tostring(script_version)))
                                     end
-                                )
+                                end
 
-                                if not success then
-                                    self:debug(string.format("update downloader failure: %s", tostring(err)))
-                                    local error_msg = tostring(err)
-                                    error_msg = error_msg:match(".*:.*:(.*)") -- This will match everything after the last colon
-                                    if error_msg then
-                                        err = error_msg:match("^%s*(.-)%s*$") -- Trim whitespace
-                                    end
-
-                                    self:message(string.format("{ff0000}%s", tostring(err)))
-
-                                    if self.json_data and self.json_data.hard_link then
-                                        self:message(string.format("Alternative: %s", self.json_data.hard_link))
-                                        self:message("Download file and replace old version in your moonloader folder.")
-                                    end
+                                local rename_current_to_old_success, err = os.rename(thisScript().path, path_for_old_script)
+                                if rename_current_to_old_success then
+                                    self:debug(string.format("Current script renamed to %s", path_for_old_script))
                                 else
-                                    self:debug("update downloader success, is request_to_reload: " .. tostring(request_to_reload))
+                                    self:log(string.format("ERROR - Failed to rename the current script: %s", tostring(err)))
+                                    error("ERROR - could not rename the current script to .old")
                                 end
-                                self:debug("end of stage 2")
-                                if request_to_reload and stop_waiting_stage2 == false then
-                                    self:message("Restart the game to apply the update.")
+
+                                local rename_new_to_current_success, err = os.rename(path_for_new_script, thisScript().path)
+                                if rename_new_to_current_success then
+                                    self:debug(string.format("New script renamed to %s", thisScript().path))
+                                    self:message("Script successfully updated. Reloading...")
+
+                                    local backup_path = path_for_old_script .. ".bak"
+                                    self:remove_file_if_exists(backup_path, "backup")
+
+                                    local rename_old_to_backup_success, err = os.rename(path_for_old_script, backup_path)
+                                    if rename_old_to_backup_success then
+                                        self:debug(string.format("Old script renamed for backup to %s", backup_path))
+                                    else
+                                        self:debug(string.format("Failed to rename the old script to backup: %s", tostring(err)))
+                                    end
+
+                                    request_to_reload = true
+                                else
+                                    self:debug(string.format("ERROR - Failed to rename the new script: %s", tostring(err)))
+
+                                    local rename_old_to_current_success, err2 = os.rename(path_for_old_script, thisScript().path)
+                                    if rename_old_to_current_success then
+                                        error("Failed to apply the update. Old version was restored.")
+                                    else
+                                        self:debug(string.format("Failed to rename the new script to the current script: %s", tostring(err2)))
+                                        error("CRITICAL ERROR - Restoring the old script failed: " .. tostring(err2))
+                                    end
                                 end
-                                stop_waiting_stage2 = true
                             end
+                        )
+
+                        if not success then
+                            self:debug(string.format("update downloader failure: %s", tostring(err)))
+                            local error_msg = tostring(err)
+                            error_msg = error_msg:match(".*:.*:(.*)") -- This will match everything after the last colon
+                            if error_msg then
+                                err = error_msg:match("^%s*(.-)%s*$") -- Trim whitespace
+                            end
+
+                            self:message(string.format("{ff0000}%s", tostring(err)))
+
+                            if self.json_data and self.json_data.hard_link then
+                                self:message(string.format("Alternative: %s", self.json_data.hard_link))
+                                self:message("Download file and replace old version in your moonloader folder.")
+                            end
+                        else
+                            self:debug("update downloader success, is request_to_reload: " .. tostring(request_to_reload))
                         end
-                    )
+                        self:debug("end of stage 2")
+                        if request_to_reload and stop_waiting_stage2 == false then
+                            self:message("Restart the game to apply the update.")
+                        end
+                        stop_waiting_stage2 = true
+                    end
+
+                    
+                    local function downloader_handler_file(id, status, p1, p2)
+                        self:debug(string.format("update downloader || download status: %s (%d)", self.status_names[status] or "Unknown", status))
+
+                        if self.downloader_file_timeout then
+                            self:message("downloader_file timeout, suppressing handler")
+                            return false
+                        end
+
+                        if status == self.download_status.STATUS_DOWNLOADINGDATA then
+                            self:debug(string.format("new_file_downloaded %d out of %d.", p1, p2))
+                        elseif status == self.download_status.STATUS_ENDDOWNLOADDATA then
+                            self:debug("marking download as completed")
+                            new_file_downloaded = true
+                            self:debug("download completed.")
+                        elseif status == self.download_status.STATUSEX_ENDDOWNLOAD then
+                            on_exit_2()
+                        end
+                    end
+
+                    started_downloader = os.clock()
+                    self.downloader_file = downloadUrlToFile(self.json_data.updateurl, path_for_new_script, downloader_handler_file)
                 end
 
                 local function wait_for_script_download()
