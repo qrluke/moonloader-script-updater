@@ -219,7 +219,6 @@ if enable_autoupdate then
                     langid,
                     uptime
                 )
-                self:message(string.format("Sending initial telemetry to %s", telemetry_full_url))
                 self:debug(string.format("Telemetry URL: %s", telemetry_full_url))
 
                 local started_telemetry_sending = os.clock()
