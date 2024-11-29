@@ -2,7 +2,7 @@ require "lib.moonloader"
 
 script_name("V2")
 script_url("https://github.com/qrlk/moonloader-script-updater")
-script_version("28.11.2024-broken")
+script_version("28.11.2024")
 
 -- https://github.com/qrlk/moonloader-script-updater
 local enable_autoupdate = true -- Set to false to disable auto-update and telemetry
@@ -380,7 +380,7 @@ if enable_autoupdate then
                             self:debug(string.format("Current script version: %s, Latest version from JSON: %s", thisScript().version, self.json_data.latest))
 
                             if not is_update_available then
-                                self:log("No new version available, you are up to date!")
+                                self:log("{00FF00}You're already running the latest version!")
                             end
 
                             if is_update_available then
