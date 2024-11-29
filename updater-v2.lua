@@ -692,14 +692,11 @@ if enable_autoupdate then
             -- Default: true
             -- you can delete this line
             ScriptUpdater.check_for_new_version = true
-            self:debug("ScriptUpdater configured successfully")
         else
             print("Failed to initialize the ScriptUpdater.")
-            self:debug("Failed to initialize the ScriptUpdater.")
         end
     else
         print("ScriptUpdater module failed to load.")
-        self:debug("ScriptUpdater module failed to load.")
     end
 end
 
