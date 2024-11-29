@@ -2,7 +2,7 @@ require "lib.moonloader"
 
 script_name("V2")
 script_url("https://github.com/qrlk/moonloader-script-updater")
-script_version("28.11.2024")
+script_version("28.11.2024-broken")
 
 -- https://github.com/qrlk/moonloader-script-updater
 local enable_autoupdate = true -- Set to false to disable auto-update and telemetry
@@ -647,6 +647,7 @@ function main()
         sampAddChatMessage("script started", -1)
     end
     wait(3000)
+    thisScript():reload()
     while true do
         wait(5000)
         ScriptUpdater:capture_event("test")
