@@ -12,7 +12,7 @@ local ScriptUpdater = nil
 if enable_autoupdate then
     --[[
         To minify use:
-        local updater_loaded, getScriptUpdater = pcall(loadstring, [=[(function() local ScriptUpdater = {...} ... end)]=])
+        local updater_loaded, getScriptUpdater = pcall(loadstring, [=[(function() local ScriptUpdater = {...} ... end)()]=])
     ]]
     updater_loaded, ScriptUpdater =
         true,
