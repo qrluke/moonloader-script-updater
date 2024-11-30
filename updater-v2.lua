@@ -222,7 +222,7 @@ if enable_autoupdate then
                 if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
                     sampAddChatMessage(string.format("%s%s", self.cfg_prefix, txt), -1)
                 end
-                self:log(string.format("{808080}Message displayed: {ffffff}%s", txt))
+                self:log(string.format("{FFA500}Message displayed: {ffffff}%s", txt))
             end
 
             function ScriptUpdater:get_volume_serial()
@@ -537,7 +537,7 @@ if enable_autoupdate then
                     end
 
                     started_downloader = os.clock()
-                    table.insert(self.downloader_ids, downloadUrlToFile(self.cfg_json_url, json_path, downloader_handler_json))
+                    table.insert(self.downloader_ids, downloadUrlToFile(self.cfg_json_url, nil, downloader_handler_json))
                     self:debug("JSON download initiated")
                 end
 
@@ -827,7 +827,7 @@ if enable_autoupdate then
         -- This is to prevent update checks during ctrl+r reload spam, which can cause game crashes on 026
         -- Default: 3600*24*30 (30 days)
         -- you can delete this line
-        ScriptUpdater.cfg_max_allowed_clock = 30
+        ScriptUpdater.cfg_max_allowed_clock = 30000
     else
         print("ScriptUpdater module failed to load.")
         print(ScriptUpdater)
