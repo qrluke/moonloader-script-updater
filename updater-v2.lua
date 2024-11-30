@@ -51,8 +51,8 @@ if enable_autoupdate then
                             ru = "{FFD700}Проверка обновлений отменена из-за превышения лимита времени работы игры. Текущее время работы: %s секунд. Лимит: %s секунд."
                         },
                         ["msg_new_version_available"] = {
-                            en = "{FFD700}A new version is available! Attempting to update from {FFFFFF}v%s{FFD700} to {FFFFFF}v%s.",
-                            ru = "{FFD700}Доступна новая версия! Пытаемся обновиться с {FFFFFF}v%s{FFD700} до {FFFFFF}v%s."
+                            en = "{FFD700}A new version is available! Attempting to update from {FFFFFF}v%s{FFD700} to {FFFFFF}v%s",
+                            ru = "{FFD700}Доступна новая версия! Пытаемся обновиться с {FFFFFF}v%s{FFD700} до {FFFFFF}v%s"
                         },
                         ["msg_timeout_while_checking_for_updates"] = {
                             en = "Timeout while checking for updates. Please check manually at %s.",
