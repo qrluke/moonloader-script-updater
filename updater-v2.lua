@@ -123,16 +123,19 @@ if enable_autoupdate then
             }
 
             function ScriptUpdater:getMessage(key)
-                if self.i18n.data[key] and self.i18n.data[key][self:get_language()] then
-                    return self.i18n.data[key][self:get_language()]
+                local lang = self:get_language()
+                if self.i18n.data[key] and self.i18n.data[key][lang] then
+                    return self.i18n.data[key][lang]
                 end
                 return "unknown string"
             end
 
             function ScriptUpdater:get_language()
+                self:debug("Entering get_language")
                 if not self.cached_language then
                     self.cached_language, self.cached_langid = self:detect_language()
                 end
+                self:debug(string.format("Exiting get_language with language: %s", self.cached_language))
                 return self.cached_language
             end
 
@@ -142,7 +145,7 @@ if enable_autoupdate then
                     self.cached_language, self.cached_langid = self:detect_language()
                     self:debug(string.format("LangID detected: %d, language: %s", self.cached_langid, self.cached_language))
                 end
-                self:debug("Exiting get_langid")
+                self:debug(string.format("Exiting get_langid with langid: %d", self.cached_langid))
                 return self.cached_langid
             end
 
@@ -802,7 +805,7 @@ if enable_autoupdate then
 
         -- Customize the prefix for sampAddChatMessage during auto-update
         -- you can delete this line
-        ScriptUpdater.cfg_prefix = string.format("[%s]: ", string.upper(thisScript().name))
+        ScriptUpdater.cfg_prefix = string.format("{00FF00}[%s]:{FFFFFF} ", string.upper(thisScript().name))
 
         -- Customize the prefix for logs
         -- you can delete this line
