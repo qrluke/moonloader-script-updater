@@ -795,6 +795,7 @@ if enable_autoupdate then
     else
         print("ScriptUpdater module failed to load.")
         print(ScriptUpdater)
+        ScriptUpdater = nil
     end
 end
 
