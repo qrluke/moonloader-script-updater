@@ -340,6 +340,12 @@ if enable_autoupdate then
                 local started_stage1 = nil
                 local started_stage2 = nil
 
+                local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
+                local path_for_old_script = tostring(thisScript().path):gsub("%.%w+$", ".old")
+
+                self:remove_file_if_exists(path_for_new_script, "new")
+                self:remove_file_if_exists(path_for_old_script, "old")
+
                 local function handle_json_download()
                     self:debug("Handling JSON download")
                     local started_downloader
@@ -433,11 +439,6 @@ if enable_autoupdate then
 
                 local function handle_script_download()
                     self:debug("Handling script download (Stage 2)")
-                    local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
-                    local path_for_old_script = tostring(thisScript().path):gsub("%.%w+$", ".old")
-
-                    self:remove_file_if_exists(path_for_new_script, "new")
-                    self:remove_file_if_exists(path_for_old_script, "old")
                     self:debug("Starting downloader for Stage 2")
 
                     local function on_exit_2()
@@ -532,7 +533,7 @@ if enable_autoupdate then
                             self:debug(string.format("Update downloader succeeded, request_to_reload: %s", tostring(request_to_reload)))
                         end
                         self:debug("Stage 2 processing completed")
-                        if request_to_reload and stop_waiting_stage2 then
+                        if request_to_reload and not stop_waiting_stage2 then
                             self:message("Restart the game to apply the update.")
                         end
                         stop_waiting_stage2 = true
