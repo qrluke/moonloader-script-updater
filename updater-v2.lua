@@ -768,7 +768,7 @@ if enable_autoupdate then
             -- If you set this to false, the script will not check for new version and will not auto-update
             -- Default: true
             -- you can delete this line
-            ScriptUpdater.check_for_new_version = true
+            ScriptUpdater.check_for_new_version = false
         else
             print("Failed to initialize the ScriptUpdater.")
         end
