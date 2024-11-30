@@ -874,7 +874,6 @@ function main()
     if enable_autoupdate and updater_loaded and ScriptUpdater then
         ScriptUpdater:debug("Initiating ScriptUpdater.check")
         local success, result = pcall(ScriptUpdater.check, ScriptUpdater)
-        ScriptUpdater:log("ScriptUpdater result:", success, result)
         ScriptUpdater:debug(string.format("ScriptUpdater.check executed with success: %s, result: %s", tostring(success), tostring(result)))
     else
         print("Auto-update not enabled or ScriptUpdater not loaded")
