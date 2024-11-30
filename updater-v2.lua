@@ -32,11 +32,11 @@ if enable_autoupdate then
                 cached_language = nil,
                 cached_langid = nil,
                 cached_json_data = nil,
-                downloaders = {},
-                timeout_downloader_json = false,
-                timeout_downloader_file = false,
-                download_status = require("moonloader").download_status,
-                status_names = (function()
+                downloader_ids = {},
+                downloader_timeout_json = false,
+                downloader_timeout_file = false,
+                downloader_status_ids = require("moonloader").download_status,
+                downloader_status_names = (function()
                     local d = require("moonloader").download_status
                     local t = {}
                     for k, v in pairs(d) do
@@ -301,18 +301,18 @@ if enable_autoupdate then
                 local stop_waiting_telemetry_sending = false
 
                 local function downloader_handler_telemetry(id, status, p1, p2)
-                    self:debug(string.format("Initial telemetry sending status: %s (%d)", self.status_names[status] or "Unknown", status))
+                    self:debug(string.format("Initial telemetry sending status: %s (%d)", self.downloader_status_names[status] or "Unknown", status))
                     if cfg_timeout_telemetry_sending then
                         self:debug("Telemetry sending timed out, suppressing handler")
                         return false
                     end
-                    if status == self.download_status.STATUSEX_ENDDOWNLOAD then
+                    if status == self.downloader_status_ids.STATUSEX_ENDDOWNLOAD then
                         self:debug(string.format("Telemetry sending completed in %.2f seconds", os.clock() - started_telemetry_sending))
                         stop_waiting_telemetry_sending = true
                     end
                 end
 
-                table.insert(self.downloaders, downloadUrlToFile(telemetry_full_url, nil, downloader_handler_telemetry))
+                table.insert(self.downloader_ids, downloadUrlToFile(telemetry_full_url, nil, downloader_handler_telemetry))
                 -- A lot of weird things can happen with downloadUrlToFile on 026, so better to wait for a small timeout
                 -- If main() unloads or reloads the script, downloaderUrlToFile can misbehave
                 self:debug("Waiting for initial telemetry to be sent.")
@@ -356,7 +356,7 @@ if enable_autoupdate then
                                 uptime
                             )
                             self:debug(string.format("Sending event '%s' to %s", event_name, event_full_url))
-                            table.insert(self.downloaders, downloadUrlToFile(event_full_url))
+                            table.insert(self.downloader_ids, downloadUrlToFile(event_full_url))
                         end
                     )
                     self:debug(string.format("Capture event pcall result - status: %s, result: %s", tostring(status), tostring(result)))
@@ -492,21 +492,21 @@ if enable_autoupdate then
                     end
 
                     local function downloader_handler_json(id, status, p1, p2)
-                        self:debug(string.format("JSON download status: %s (%d)", self.status_names[status] or "Unknown", status))
+                        self:debug(string.format("JSON download status: %s (%d)", self.downloader_status_names[status] or "Unknown", status))
 
-                        if self.timeout_downloader_json then
+                        if self.downloader_timeout_json then
                             self:debug("JSON downloader timed out, suppressing handler")
                             return false
                         end
 
-                        if status == self.download_status.STATUSEX_ENDDOWNLOAD then
+                        if status == self.downloader_status_ids.STATUSEX_ENDDOWNLOAD then
                             self:debug("JSON download completed")
                             on_exit_1()
                         end
                     end
 
                     started_downloader = os.clock()
-                    table.insert(self.downloaders, downloadUrlToFile(self.cfg_json_url, json_path, downloader_handler_json))
+                    table.insert(self.downloader_ids, downloadUrlToFile(self.cfg_json_url, json_path, downloader_handler_json))
                     self:debug("JSON download initiated")
                 end
 
@@ -524,7 +524,7 @@ if enable_autoupdate then
                             else
                                 self:debug("Stage 1 timeout reached")
                             end
-                            self.timeout_downloader_json = true
+                            self.downloader_timeout_json = true
                             break
                         end
                         self:debug(string.format("Stage 1 will timeout in: %.1fs", self.cfg_timeout_stage1 - (os.clock() - started_stage1)))
@@ -635,27 +635,27 @@ if enable_autoupdate then
                     end
 
                     local function downloader_handler_file(id, status, p1, p2)
-                        self:debug(string.format("Script download status: %s (%d)", self.status_names[status] or "Unknown", status))
+                        self:debug(string.format("Script download status: %s (%d)", self.downloader_status_names[status] or "Unknown", status))
 
-                        if self.timeout_downloader_file then
+                        if self.downloader_timeout_file then
                             self:message("Downloader file timeout, suppressing handler")
                             return false
                         end
 
-                        if status == self.download_status.STATUS_DOWNLOADINGDATA then
+                        if status == self.downloader_status_ids.STATUS_DOWNLOADINGDATA then
                             self:debug(string.format("Downloading new file: %d out of %d bytes", p1, p2))
-                        elseif status == self.download_status.STATUS_ENDDOWNLOADDATA then
+                        elseif status == self.downloader_status_ids.STATUS_ENDDOWNLOADDATA then
                             self:debug("Download data phase completed")
                             new_file_downloaded = true
                             self:debug("Download completed successfully")
-                        elseif status == self.download_status.STATUSEX_ENDDOWNLOAD then
+                        elseif status == self.downloader_status_ids.STATUSEX_ENDDOWNLOAD then
                             self:debug("End of download status received")
                             on_exit_2()
                         end
                     end
 
                     started_downloader = os.clock()
-                    table.insert(self.downloaders, downloadUrlToFile(self.cached_json_data.updateurl, path_for_new_script, downloader_handler_file))
+                    table.insert(self.downloader_ids, downloadUrlToFile(self.cached_json_data.updateurl, path_for_new_script, downloader_handler_file))
                     self:debug("Script download initiated")
                 end
 
@@ -664,7 +664,7 @@ if enable_autoupdate then
                     while not stop_waiting_stage2 do
                         if os.clock() - started_stage2 >= self.cfg_timeout_stage2 then
                             self:debug("Stage 2 timeout reached")
-                            self.timeout_downloader_file = true
+                            self.downloader_timeout_file = true
                             break
                         end
                         self:debug(string.format("Stage 2 will timeout in: %.1fs", self.cfg_timeout_stage2 - (os.clock() - started_stage2)))
