@@ -220,7 +220,7 @@ if enable_autoupdate then
                 if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
                     sampAddChatMessage(string.format("%s%s", self.prefix, txt), -1)
                 end
-                self:debug(string.format("Message displayed: %s", txt))
+                self:log(string.format("Message displayed: %s", txt))
             end
 
             function ScriptUpdater:get_volume_serial()
