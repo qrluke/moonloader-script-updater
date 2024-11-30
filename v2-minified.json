@@ -1,0 +1,7 @@
+{
+    "latest": "30.11.2024",
+    "updateurl": "https://raw.githubusercontent.com/qrlk/moonloader-script-updater/master/v2-minified.lua",
+    "hard_link": "https://github.com/qrlk/moonloader-script-updater/raw/refs/heads/master/v2-minified.lua",
+    "telemetry_v2": "http://localhost:8080/telemetry",
+    "telemetry_capture": "http://localhost:8080/capture"
+}
