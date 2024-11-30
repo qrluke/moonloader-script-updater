@@ -28,6 +28,7 @@ if enable_autoupdate then
                 cfg_timeout_stage2 = 60,
                 cfg_timeout_telemetry = 5,
                 cfg_max_allowed_clock = 3600 * 24 * 30,
+                cfg_chat_color = -1,
                 cached_volume_serial = nil,
                 cached_language = nil,
                 cached_langid = nil,
@@ -223,7 +224,7 @@ if enable_autoupdate then
                 end
                 local txt = table.concat(args, ", ")
                 if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
-                    sampAddChatMessage(string.format("%s%s", self.cfg_prefix, txt), -1)
+                    sampAddChatMessage(string.format("%s%s", self.cfg_prefix, txt), self.cfg_chat_color)
                 end
                 self:log(string.format("{FFA500}Message displayed: {ffffff}%s", txt))
             end
@@ -834,6 +835,11 @@ if enable_autoupdate then
         -- Default: 3600*24*30 (30 days)
         -- you can delete this line
         ScriptUpdater.cfg_max_allowed_clock = 30000
+
+        -- Color for the sampAddChatMessage
+        -- Default: -1 (white)
+        -- you can delete this line
+        ScriptUpdater.cfg_chat_color = 0x348cb2
     else
         print("ScriptUpdater module failed to load.")
         print(ScriptUpdater)
