@@ -403,7 +403,7 @@ if enable_autoupdate then
                     pcall(
                     function()
                         while true do
-                            self:debug("Reading new script file chunk")
+                            self:debug(string.format("Reading new script file chunk, size: %d", chunk_size))
                             local chunk = file:read(chunk_size)
                             if not chunk then
                                 break
@@ -421,13 +421,13 @@ if enable_autoupdate then
 
                 file:close()
 
-                if not success then
+                if success then
+                    self:debug(string.format("Script version found in file: %s", version))
+                    return
+                else
                     self:debug(string.format("Error occurred while reading file: %s", tostring(version)))
                     error(version)
                 end
-
-                self:debug("No script version found in file")
-                return version
             end
 
             function ScriptUpdater:check()
