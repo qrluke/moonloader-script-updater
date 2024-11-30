@@ -386,13 +386,32 @@ if enable_autoupdate then
                 self:debug(string.format("Getting script version from path: %s", path))
                 local file, err = io.open(path, "r")
                 if not file then
-                    error(string.format("Could not open new script file: %s", tostring(err)))
+                    error(string.format("Could not open script file: %s", tostring(err)))
                 end
-                local new_script_content = file:read("*a")
+                
+                -- Read file in chunks to handle large files more efficiently
+                local chunk_size = 4096
+                local content = ""
+                local pattern = 'script_version%("([^"]+)"%)'
+                
+                while true do
+                    wait(100)
+                    self:debug("Reading new script file chunk")
+                    local chunk = file:read(chunk_size)
+                    if not chunk then break end
+                    content = content .. chunk
+                    
+                    local version = string.match(content, pattern)
+                    if version then
+                        file:close()
+                        self:debug(string.format("Found script version: %s", version))
+                        return version
+                    end
+                end
+                
                 file:close()
-                local script_version = string.match(new_script_content, 'script_version%("([^"]+)"%)')
-                self:debug(string.format("Extracted script version: %s", tostring(script_version)))
-                return script_version
+                self:debug("No script version found in file")
+                return nil
             end
 
             function ScriptUpdater:check()
