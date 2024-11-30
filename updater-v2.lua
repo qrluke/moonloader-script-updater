@@ -714,7 +714,6 @@ if enable_autoupdate then
                     local backup_path = tostring(thisScript().path):gsub("%.%w+$", ".old.bak")
                     if backup_path ~= tostring(thisScript().path) then
                         self:remove_file_if_exists(backup_path, "backup")
-                        error("Failed to generate old/new script paths")
                     else
                         self:debug("NOT GOOD - Debug path is the same as the current script path")
                     end
