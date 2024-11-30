@@ -427,7 +427,11 @@ if enable_autoupdate then
                     self:debug("Waiting for JSON download to complete")
                     while not stop_waiting_stage1 do
                         if os.clock() - started_stage1 >= self.timeout_stage1 then
-                            self:debug("Stage 1 timeout reached")
+                            if self.url ~= "" then
+                                self:log(string.format("{ff0000}Timeout reached while checking for updates. Please check manually at {FFFFFF}%s", self.url))
+                            else
+                                self:debug("Stage 1 timeout reached")
+                            end
                             self.downloader_json_timeout = true
                             break
                         end
