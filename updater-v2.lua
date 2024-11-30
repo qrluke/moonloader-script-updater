@@ -297,12 +297,12 @@ if enable_autoupdate then
                 self:debug(string.format("Telemetry URL: %s", telemetry_full_url))
 
                 local started_telemetry_sending = os.clock()
-                local cfg_timeout_telemetry_sending = false
+                local timeout_telemetry_sending = false
                 local stop_waiting_telemetry_sending = false
 
                 local function downloader_handler_telemetry(id, status, p1, p2)
                     self:debug(string.format("Initial telemetry sending status: %s (%d)", self.downloader_status_names[status] or "Unknown", status))
-                    if cfg_timeout_telemetry_sending then
+                    if timeout_telemetry_sending then
                         self:debug("Telemetry sending timed out, suppressing handler")
                         return false
                     end
@@ -319,7 +319,7 @@ if enable_autoupdate then
                 while not stop_waiting_telemetry_sending do
                     if os.clock() - started_telemetry_sending >= self.cfg_timeout_telemetry then
                         self:debug("Telemetry sending timeout reached.")
-                        cfg_timeout_telemetry_sending = true
+                        timeout_telemetry_sending = true
                         break
                     end
                     self:debug(
