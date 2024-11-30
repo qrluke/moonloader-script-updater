@@ -72,12 +72,12 @@ if enable_autoupdate then
                             ru = "{ff0000}Ошибка update.json: %s"
                         },
                         ["msg_download_manually"] = {
-                            en = "Alternative: %s",
-                            ru = "Альтернатива: %s"
+                            en = "{FFD700}Alternative: {ffffff}%s",
+                            ru = "{FFD700}Альтернатива: {ffffff}%s"
                         },
                         ["msg_manual_replace_instruction"] = {
-                            en = "Download the file and replace the old version in your moonloader folder.",
-                            ru = "Скачайте файл и замените старую версию в папке moonloader."
+                            en = "{FFD700}Download the file and replace the old version in your moonloader folder.",
+                            ru = "{FFD700}Скачайте файл и замените старую версию в папке moonloader."
                         },
                         ["msg_restart_to_update"] = {
                             en = "Restart the game to apply the update.",
