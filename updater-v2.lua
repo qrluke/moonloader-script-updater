@@ -488,7 +488,7 @@ if enable_autoupdate then
                                 local rename_new_to_current_success, rename_new_err = os.rename(path_for_new_script, thisScript().path)
                                 if rename_new_to_current_success then
                                     self:debug(string.format("New script renamed to %s", thisScript().path))
-                                    self:message("Script successfully updated. Reloading...")
+                                    self:message(string.format("{00FF00}Script successfully updated. Reloading..."))
 
                                     local backup_path = string.format("%s.bak", path_for_old_script)
                                     self:remove_file_if_exists(backup_path, "backup")
@@ -591,7 +591,7 @@ if enable_autoupdate then
                 started_stage2 = os.clock()
                 self:debug(string.format("Starting stage 2: Do we need it? %s", tostring(need_stage2)))
                 if need_stage2 and self.json_data then
-                    self:message(string.format("New version is available! Trying to update from %s to %s!", thisScript().version, self.json_data.latest))
+                    self:message(string.format("{FFD700}New version is available! Trying to update from {FFFFFF}v%s {FFD700}to {FFFFFF}v%s", thisScript().version, self.json_data.latest))
                     handle_script_download()
                     wait_for_script_download()
                 end
