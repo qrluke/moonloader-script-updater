@@ -838,6 +838,7 @@ end
 function main()
     -- samp is not mandatory, but if you want to use samp functions, you should wait until samp is available
     -- sampfuncs is needed for a lot of samp-related functions
+    -- DO NOT CALL ScriptUpdater:debug ouside of if enable_autoupdate and updater_loaded and ScriptUpdater ...
     if isSampLoaded() and isSampfuncsLoaded() then
         while not isSampAvailable() do
             wait(100)
@@ -850,7 +851,7 @@ function main()
         ScriptUpdater:debug("SAMP is loaded and available")
     end
 
-    if updater_loaded and enable_autoupdate and ScriptUpdater then
+    if enable_autoupdate and updater_loaded and ScriptUpdater then
         ScriptUpdater:debug("Initiating ScriptUpdater.check")
         local success, result = pcall(ScriptUpdater.check, ScriptUpdater)
         ScriptUpdater:log("ScriptUpdater result:", success, result)
