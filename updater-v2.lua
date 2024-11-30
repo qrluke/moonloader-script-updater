@@ -44,16 +44,92 @@ if enable_autoupdate then
                         t[v] = k
                     end
                     return t
-                end)()
+                end)(),
+                i18n = {
+                    data = {
+                        ["msg_new_version_available"] = {
+                            en = "New version is available! Trying to update from %s to %s!",
+                            ru = "Новая версия доступна! Пытаемся обновиться с %s до %s!",
+                        },
+                        ["msg_timeout_while_checking_for_updates"] = {
+                            en = "Timeout while checking for updates. Please check manually at %s.",
+                            ru = "Время ожидания проверки обновлений истекло. Проверьте вручную на %s.",
+                        },
+                        ["msg_json_url_not_set"] = {
+                            en = "json_url is not set, autoupdate is not possible",
+                            ru = "json_url не установлен, автообновление невозможно",
+                        },
+                        ["msg_already_latest_version"] = {
+                            en = "You're already running the latest version!",
+                            ru = "У вас уже установлена последняя версия!",
+                        },
+                        ["msg_update_json_failure"] = {
+                            en = "update.json failure: %s",
+                            ru = "Ошибка update.json: %s",
+                        },
+                        ["msg_download_manually"] = {
+                            en = "Alternative: %s",
+                            ru = "Альтернатива: %s",
+                        },
+                        ["msg_manual_replace_instruction"] = {
+                            en = "Download file and replace old version in your moonloader folder.",
+                            ru = "Скачайте файл и замените старую версию в папке moonloader.",
+                        },
+                        ["msg_restart_to_update"] = {
+                            en = "Restart the game to apply the update.",
+                            ru = "Перезапустите игру, чтобы применить обновление.",
+                        },
+                        ["msg_script_updated"] = {
+                            en = "Script successfully updated. Reloading...",
+                            ru = "Скрипт успешно обновлен. Перезагрузка...",
+                        },
+                        ["err_download_failed"] = {
+                            en = "ERROR - Download failed. Aborting the update...",
+                            ru = "ОШИБКА - Загрузка не удалась. Отмена обновления...",
+                        },
+                        ["err_new_file_missing"] = {
+                            en = "ERROR - New script file does not exist. Aborting the update...",
+                            ru = "ОШИБКА - Новый файл скрипта не существует. Отмена обновления...",
+                        },
+                        ["err_same_version"] = {
+                            en = "ERROR - New file version is the same as the current. Try again later.",
+                            ru = "ОШИБКА - Версия нового файла совпадает с текущей. Попробуйте позже.",
+                        },
+                        ["err_version_not_found"] = {
+                            en = "New script version not found in the new file.",
+                            ru = "Версия скрипта не найдена в новом файле.",
+                        },
+                        ["err_rename_current"] = {
+                            en = "ERROR - Could not rename the current script to .old",
+                            ru = "ОШИБКА - Не удалось переименовать текущий скрипт в .old",
+                        },
+                        ["err_rename_failed"] = {
+                            en = "ERROR - Failed to rename the current script: %s",
+                            ru = "ОШИБКА - Не удалось переименовать текущий скрипт: %s",
+                        },
+                        ["err_update_failed_restored"] = {
+                            en = "Failed to apply the update. Old version was restored.",
+                            ru = "Не удалось применить обновление. Старая версия восстановлена.",
+                        },
+                        ["err_critical_restore_failed"] = {
+                            en = "CRITICAL ERROR - Restoring the old script failed: %s",
+                            ru = "КРИТИЧЕСКАЯ ОШИБКА - Не удалось восстановить старый скрипт: %s",
+                        }
+                    }
+                }
             }
 
+            function ScriptUpdater:getMessage(key)
+                if self.i18n.data[key] and self.i18n.data[key][self:get_language()] then
+                    return self.i18n.data[key][self:get_language()]
+                end
+                return "unknown translation"
+            end
+
             function ScriptUpdater:get_language()
-                self:debug("Entering get_language")
                 if not self.language then
                     self.language, self.langid = self:detect_language()
-                    self:debug(string.format("Language detected: %s, langid: %d", self.language, self.langid))
                 end
-                self:debug("Exiting get_language")
                 return self.language
             end
 
@@ -323,7 +399,7 @@ if enable_autoupdate then
             function ScriptUpdater:check()
                 self:debug("Starting update check")
                 if self.json_url == "" then
-                    self:message("json_url is not set, autoupdate is not possible")
+                    self:message(self:getMessage("msg_json_url_not_set"))
                     self:debug("Update check aborted: json_url not set")
                     return
                 end
@@ -386,7 +462,7 @@ if enable_autoupdate then
                             self:debug(string.format("Current script version: %s, Latest version from JSON: %s", thisScript().version, self.json_data.latest))
 
                             if not is_update_available then
-                                self:log("{00FF00}You're already running the latest version!")
+                                self:log(string.format("{00FF00}%s", self:getMessage("msg_already_latest_version")))
                             end
 
                             if is_update_available then
@@ -397,7 +473,7 @@ if enable_autoupdate then
                             end
                         end
                         if not status then
-                            self:message(string.format("update.json failure: %s", tostring(result)))
+                            self:message(string.format(self:getMessage("msg_update_json_failure"), tostring(result)))
                             self:debug(string.format("JSON download failed: %s", tostring(result)))
                         end
                         self:debug("Stage 1 processing completed")
@@ -428,7 +504,7 @@ if enable_autoupdate then
                     while not stop_waiting_stage1 do
                         if os.clock() - started_stage1 >= self.timeout_stage1 then
                             if self.url ~= "" then
-                                self:log(string.format("{ff0000}Timeout reached while checking for updates. Please check manually at {FFFFFF}%s", self.url))
+                                self:log(string.format("{ff0000}%s", string.format(self:getMessage("msg_timeout_while_checking_for_updates"), self.url)))
                             else
                                 self:debug("Stage 1 timeout reached")
                             end
@@ -452,11 +528,11 @@ if enable_autoupdate then
                             pcall(
                             function()
                                 if not new_file_downloaded then
-                                    error("ERROR - Download failed. Aborting the update...")
+                                    error(self:getMessage("err_download_failed"))
                                 end
 
                                 if not doesFileExist(path_for_new_script) then
-                                    error("ERROR - New script file does not exist. Aborting the update...")
+                                    error(self:getMessage("err_new_file_missing"))
                                 end
 
                                 if self.check_for_new_version then
@@ -467,13 +543,12 @@ if enable_autoupdate then
                                         if new_script_version then
                                             if new_script_version == thisScript().version then
                                                 self:remove_file_if_exists(path_for_new_script, "new")
-                                                -- CDN cache issue, no need to manual download
                                                 self:debug("CDN cache issue detected, removing hard_link from JSON data")
                                                 self.json_data.hard_link = nil
-                                                error("ERROR - New file version is the same as the current. Try again later.")
+                                                error(self:getMessage("err_same_version"))
                                             end
                                         else
-                                            self:message("New script version not found in the new file.")
+                                            self:message(self:getMessage("err_version_not_found"))
                                             self:debug("New script version not found in the downloaded file")
                                         end
                                     else
@@ -485,14 +560,14 @@ if enable_autoupdate then
                                 if rename_current_to_old_success then
                                     self:debug(string.format("Current script renamed to %s", path_for_old_script))
                                 else
-                                    self:log(string.format("ERROR - Failed to rename the current script: %s", tostring(rename_err)))
-                                    error("ERROR - Could not rename the current script to .old")
+                                    self:log(string.format(self:getMessage("err_rename_failed"), tostring(rename_err)))
+                                    error(self:getMessage("err_rename_current"))
                                 end
 
                                 local rename_new_to_current_success, rename_new_err = os.rename(path_for_new_script, thisScript().path)
                                 if rename_new_to_current_success then
                                     self:debug(string.format("New script renamed to %s", thisScript().path))
-                                    self:message(string.format("{00FF00}Script successfully updated. Reloading..."))
+                                    self:message(string.format("{00FF00}%s", self:getMessage("msg_script_updated")))
 
                                     local backup_path = string.format("%s.bak", path_for_old_script)
                                     self:remove_file_if_exists(backup_path, "backup")
@@ -510,10 +585,10 @@ if enable_autoupdate then
 
                                     local rename_old_to_current_success, rename_restore_err = os.rename(path_for_old_script, thisScript().path)
                                     if rename_old_to_current_success then
-                                        error("Failed to apply the update. Old version was restored.")
+                                        error(self:getMessage("err_update_failed_restored"))
                                     else
                                         self:debug(string.format("Failed to restore the old script: %s", tostring(rename_restore_err)))
-                                        error(string.format("CRITICAL ERROR - Restoring the old script failed: %s", tostring(rename_restore_err)))
+                                        error(string.format(self:getMessage("err_critical_restore_failed"), tostring(rename_restore_err)))
                                     end
                                 end
                             end
@@ -530,15 +605,15 @@ if enable_autoupdate then
                             self:message(string.format("{ff0000}%s", tostring(err)))
 
                             if self.json_data and self.json_data.hard_link then
-                                self:message(string.format("Alternative: %s", self.json_data.hard_link))
-                                self:message("Download file and replace old version in your moonloader folder.")
+                                self:message(string.format(self:getMessage("msg_download_manually"), self.json_data.hard_link))
+                                self:message(self:getMessage("msg_manual_replace_instruction"))
                             end
                         else
                             self:debug(string.format("Update downloader succeeded, request_to_reload: %s", tostring(request_to_reload)))
                         end
                         self:debug("Stage 2 processing completed")
                         if request_to_reload and stop_waiting_stage2 then
-                            self:message("Restart the game to apply the update.")
+                            self:message(self:getMessage("msg_restart_to_update"))
                         end
                         stop_waiting_stage2 = true
                     end
@@ -595,7 +670,7 @@ if enable_autoupdate then
                 started_stage2 = os.clock()
                 self:debug(string.format("Starting stage 2: Do we need it? %s", tostring(need_stage2)))
                 if need_stage2 and self.json_data then
-                    self:message(string.format("{FFD700}New version is available! Trying to update from {FFFFFF}v%s {FFD700}to {FFFFFF}v%s", thisScript().version, self.json_data.latest))
+                    self:message(string.format("{FFD700}%s", string.format(self:getMessage("msg_new_version_available"), thisScript().version, self.json_data.latest)))
                     handle_script_download()
                     wait_for_script_download()
                 end
