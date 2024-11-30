@@ -99,8 +99,8 @@ if enable_autoupdate then
                             ru = "ОШИБКА - Версия нового файла совпадает с текущей. Попробуйте позже."
                         },
                         ["err_version_not_found"] = {
-                            en = "New script version not found in the new file.",
-                            ru = "Версия скрипта не найдена в новом файле."
+                            en = "{ff0000}New script version not found in the new file.",
+                            ru = "{ff0000}Версия скрипта не найдена в новом файле."
                         },
                         ["err_rename_current"] = {
                             en = "ERROR - Could not rename the current script to .old.",
@@ -423,7 +423,7 @@ if enable_autoupdate then
 
                 if success then
                     self:debug(string.format("Script version found in file: %s", version))
-                    return
+                    return version
                 else
                     self:debug(string.format("Error occurred while reading file: %s", tostring(version)))
                     error(version)
