@@ -838,17 +838,16 @@ end
 function main()
     -- samp is not mandatory, but if you want to use samp functions, you should wait until samp is available
     -- sampfuncs is needed for a lot of samp-related functions
-    -- DO NOT CALL ScriptUpdater:debug ouside of if enable_autoupdate and updater_loaded and ScriptUpdater ...
     if isSampLoaded() and isSampfuncsLoaded() then
         while not isSampAvailable() do
             wait(100)
-            ScriptUpdater:debug("Waiting for SAMP to become available")
+            print("Waiting for SAMP to become available")
         end
     end
 
     if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
         sampAddChatMessage("check started", -1)
-        ScriptUpdater:debug("SAMP is loaded and available")
+        print("SAMP is loaded and available")
     end
 
     if enable_autoupdate and updater_loaded and ScriptUpdater then
@@ -857,16 +856,16 @@ function main()
         ScriptUpdater:log("ScriptUpdater result:", success, result)
         ScriptUpdater:debug(string.format("ScriptUpdater.check executed with success: %s, result: %s", tostring(success), tostring(result)))
     else
-        ScriptUpdater:debug("Auto-update not enabled or ScriptUpdater not loaded")
+        print("Auto-update not enabled or ScriptUpdater not loaded")
     end
 
     if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
         sampAddChatMessage("script started", -1)
-        ScriptUpdater:debug("Script started and SAMP is available")
+        print("Script started and SAMP is available")
     end
     wait(1000)
     -- thisScript():reload()
-    ScriptUpdater:debug("Entering main loop")
+    print("Entering main loop")
     while true do
         wait(5000)
         -- ScriptUpdater:capture_event("test")
