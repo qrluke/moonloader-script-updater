@@ -259,7 +259,7 @@ if enable_autoupdate then
                 )
                 if success then
                     self.cached_volume_serial = volume_serial
-                    self:debug(string.format("Volume serial set to: %d", self.volume_serial))
+                    self:debug(string.format("Volume serial set to: %d", self.cached_volume_serial))
                     return self.cached_volume_serial
                 else
                     self:debug(string.format("Failed to get volume serial: %s", tostring(volume_serial)))
@@ -390,7 +390,7 @@ if enable_autoupdate then
                 end
                 local new_script_content = file:read("*a")
                 file:close()
-                local _, _, script_version = string.find(new_script_content, 'script_version%("([^"]+)"%)')
+                local script_version = string.match(new_script_content, 'script_version%("([^"]+)"%)')
                 self:debug(string.format("Extracted script version: %s", tostring(script_version)))
                 return script_version
             end
@@ -482,8 +482,7 @@ if enable_autoupdate then
                             else
                                 self:debug("No newer version detected, ending update check")
                             end
-                        end
-                        if not status then
+                        else
                             self:message(string.format(self:getMessage("msg_update_json_failure"), tostring(result)))
                             self:debug(string.format("JSON download failed: %s", tostring(result)))
                         end
