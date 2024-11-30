@@ -6,7 +6,7 @@ script_version("28.11.2024-broken")
 
 -- https://github.com/qrlk/moonloader-script-updater
 local enable_autoupdate = true -- Set to false to disable auto-update and telemetry
-local autoupdate_loaded = false
+local updater_loaded = false
 local ScriptUpdater = nil
 
 if enable_autoupdate then
@@ -14,7 +14,7 @@ if enable_autoupdate then
         To minify use:
         local updater_loaded, getScriptUpdater = pcall(loadstring, [=[(function() local ScriptUpdater = {...} ... end)]=])
     ]]
-    local updater_loaded, getScriptUpdater =
+    updater_loaded, ScriptUpdater =
         true,
         (function()
             local ScriptUpdater = {
@@ -723,19 +723,17 @@ if enable_autoupdate then
             end
 
             return ScriptUpdater
-        end)
+        end)()
 
     if updater_loaded then
-        autoupdate_loaded, ScriptUpdater = pcall(getScriptUpdater)
-        if autoupdate_loaded then
-            --[[
+        --[[
                 Script Updater Configuration
                 github repo: https://github.com/qrlk/moonloader-script-updater
 
                 don't forget to call it in main() after isSampAvailable (if you want to use samp)
                 like this:
                 
-                if autoupdate_loaded and enable_autoupdate and ScriptUpdater then
+                if updater_loaded and enable_autoupdate and ScriptUpdater then
                     print(pcall(ScriptUpdater.check, ScriptUpdater))
                 end
 
@@ -760,47 +758,45 @@ if enable_autoupdate then
                   - If "telemetry_capture" is included, events can be sent to the endpoint using ScriptUpdater:capture_event("event_name").
                     http://domain.com/capture?id=<logical_volume_id:int>&i=<server_ip:str>&sv=<script_version:str>&event=<event_name:str>&uptime=<uptime:float>
             ]]
-            -- Set the URL to fetch the update JSON, appending a timestamp to prevent caching
-            -- you can NOT delete this line, it is required for the updater to work!!! replace it with your own json url
-            ScriptUpdater.cfg_json_url =
-                string.format("https://raw.githubusercontent.com/qrlk/moonloader-script-updater/master/updater-v2.json?%s", tostring(os.clock()))
+        -- Set the URL to fetch the update JSON, appending a timestamp to prevent caching
+        -- you can NOT delete this line, it is required for the updater to work!!! replace it with your own json url
+        ScriptUpdater.cfg_json_url =
+            string.format("https://raw.githubusercontent.com/qrlk/moonloader-script-updater/master/updater-v2.json?%s", tostring(os.clock()))
 
-            -- Customize the prefix for sampAddChatMessage during auto-update
-            -- you can delete this line
-            ScriptUpdater.cfg_prefix = string.format("[%s]: ", string.upper(thisScript().name))
+        -- Customize the prefix for sampAddChatMessage during auto-update
+        -- you can delete this line
+        ScriptUpdater.cfg_prefix = string.format("[%s]: ", string.upper(thisScript().name))
 
-            -- Customize the prefix for logs
-            -- you can delete this line
-            ScriptUpdater.cfg_log_prefix = string.format("v%s | ScriptUpdater: ", thisScript().version)
+        -- Customize the prefix for logs
+        -- you can delete this line
+        ScriptUpdater.cfg_log_prefix = string.format("v%s | ScriptUpdater: ", thisScript().version)
 
-            -- URL which prints to the console when the script fails to update, pretty much useless
-            -- Default is "", meaning no URL will be printed
-            -- you can delete this line
-            ScriptUpdater.cfg_url = "https://github.com/qrlk/moonloader-script-updater/"
+        -- URL which prints to the console when the script fails to update, pretty much useless
+        -- Default is "", meaning no URL will be printed
+        -- you can delete this line
+        ScriptUpdater.cfg_url = "https://github.com/qrlk/moonloader-script-updater/"
 
-            -- Enable or disable debug messages in the console (recommended to set to false in production)
-            -- Default: false
-            -- you can delete this line
-            ScriptUpdater.cfg_debug_enabled = true
+        -- Enable or disable debug messages in the console (recommended to set to false in production)
+        -- Default: false
+        -- you can delete this line
+        ScriptUpdater.cfg_debug_enabled = true
 
-            -- Enable or disable checking for new version
-            -- if new version parsed from the new file is the same as the current version, the script will not be replaced
-            -- this can prevent CDN caching issues
-            -- If you set this to false, the script will not check for new version and will not auto-update
-            -- Default: true
-            -- you can delete this line
-            ScriptUpdater.cfg_check_new_file = false
+        -- Enable or disable checking for new version
+        -- if new version parsed from the new file is the same as the current version, the script will not be replaced
+        -- this can prevent CDN caching issues
+        -- If you set this to false, the script will not check for new version and will not auto-update
+        -- Default: true
+        -- you can delete this line
+        ScriptUpdater.cfg_check_new_file = false
 
-            -- If os.clock() (game uptime) exceeds this value, the update check will be aborted at the beginning of the check
-            -- This is to prevent update checks during ctrl+r reload spam, which can cause game crashes on 026
-            -- Default: 3600*24*30 (30 days)
-            -- you can delete this line
-            ScriptUpdater.cfg_max_allowed_clock = 30
-        else
-            print("Failed to initialize the ScriptUpdater.")
-        end
+        -- If os.clock() (game uptime) exceeds this value, the update check will be aborted at the beginning of the check
+        -- This is to prevent update checks during ctrl+r reload spam, which can cause game crashes on 026
+        -- Default: 3600*24*30 (30 days)
+        -- you can delete this line
+        ScriptUpdater.cfg_max_allowed_clock = 30
     else
         print("ScriptUpdater module failed to load.")
+        print(ScriptUpdater)
     end
 end
 
@@ -819,7 +815,7 @@ function main()
         ScriptUpdater:debug("SAMP is loaded and available")
     end
 
-    if autoupdate_loaded and enable_autoupdate and ScriptUpdater then
+    if updater_loaded and enable_autoupdate and ScriptUpdater then
         ScriptUpdater:debug("Initiating ScriptUpdater.check")
         local success, result = pcall(ScriptUpdater.check, ScriptUpdater)
         print("ScriptUpdater result:", success, result)
