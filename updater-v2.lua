@@ -159,12 +159,6 @@ if enable_autoupdate then
                     2073 -- Russian (Moldova)
                 }
 
-                local status, ffiModule = pcall(require, "ffi")
-                if not status then
-                    self:debug("FFI module not available, returning default language")
-                    return defaultLanguage, 0
-                end
-
                 local success, result, langid =
                     pcall(
                     function()
