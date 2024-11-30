@@ -2,7 +2,7 @@ require "lib.moonloader"
 
 script_name("V2")
 script_url("https://github.com/qrlk/moonloader-script-updater")
-script_version("28.11.2024-broken")
+script_version("30.11.2024")
 
 -- https://github.com/qrlk/moonloader-script-updater
 local enable_autoupdate = true -- Set to false to disable auto-update and telemetry
