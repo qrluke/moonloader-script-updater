@@ -47,20 +47,20 @@ if enable_autoupdate then
                 i18n = {
                     data = {
                         ["msg_cfg_max_allowed_clock"] = {
-                            en = "{FFD700}Update check cancelled because the game uptime limit was exceeded. Current uptime: %s seconds. Limit: %s seconds.",
-                            ru = "{FFD700}Проверка обновлений отменена из-за превышения лимита аптайма игры. Текущий аптайм: %s секунд. Лимит: %s секунд."
+                            en = "{FFD700}Update check canceled because the game uptime limit was exceeded. Current uptime: %s seconds. Limit: %s seconds.",
+                            ru = "{FFD700}Проверка обновлений отменена из-за превышения лимита времени работы игры. Текущее время работы: %s секунд. Лимит: %s секунд."
                         },
                         ["msg_new_version_available"] = {
-                            en = "{FFD700}New version is available! Trying to update from {FFFFFF}v%s{FFD700} to {FFFFFF}v%s",
-                            ru = "{FFD700}Новая версия доступна! Пытаемся обновиться с {FFFFFF}v%s{FFD700} до {FFFFFF}v%s"
+                            en = "{FFD700}A new version is available! Attempting to update from {FFFFFF}v%s{FFD700} to {FFFFFF}v%s.",
+                            ru = "{FFD700}Доступна новая версия! Пытаемся обновиться с {FFFFFF}v%s{FFD700} до {FFFFFF}v%s."
                         },
                         ["msg_timeout_while_checking_for_updates"] = {
                             en = "Timeout while checking for updates. Please check manually at %s.",
                             ru = "Время ожидания проверки обновлений истекло. Проверьте вручную на %s."
                         },
                         ["msg_json_url_not_set"] = {
-                            en = "cfg_json_url is not set, autoupdate is not possible",
-                            ru = "cfg_json_url не установлен, автообновление невозможно"
+                            en = "cfg_json_url is not set, auto-update is not possible.",
+                            ru = "cfg_json_url не установлен, автообновление невозможно."
                         },
                         ["msg_already_latest_version"] = {
                             en = "You're already running the latest version!",
@@ -75,7 +75,7 @@ if enable_autoupdate then
                             ru = "Альтернатива: %s"
                         },
                         ["msg_manual_replace_instruction"] = {
-                            en = "Download file and replace old version in your moonloader folder.",
+                            en = "Download the file and replace the old version in your moonloader folder.",
                             ru = "Скачайте файл и замените старую версию в папке moonloader."
                         },
                         ["msg_restart_to_update"] = {
@@ -87,15 +87,15 @@ if enable_autoupdate then
                             ru = "Скрипт успешно обновлен. Перезагрузка..."
                         },
                         ["err_download_failed"] = {
-                            en = "ERROR - Download failed. Aborting the update...",
+                            en = "ERROR - Download failed. Aborting update...",
                             ru = "ОШИБКА - Загрузка не удалась. Отмена обновления..."
                         },
                         ["err_new_file_missing"] = {
-                            en = "ERROR - New script file does not exist. Aborting the update...",
+                            en = "ERROR - New script file does not exist. Aborting update...",
                             ru = "ОШИБКА - Новый файл скрипта не существует. Отмена обновления..."
                         },
                         ["err_same_version"] = {
-                            en = "ERROR - New file version is the same as the current. Try again later.",
+                            en = "ERROR - New file version is the same as the current one. Try again later.",
                             ru = "ОШИБКА - Версия нового файла совпадает с текущей. Попробуйте позже."
                         },
                         ["err_version_not_found"] = {
@@ -103,19 +103,19 @@ if enable_autoupdate then
                             ru = "Версия скрипта не найдена в новом файле."
                         },
                         ["err_rename_current"] = {
-                            en = "ERROR - Could not rename the current script to .old",
-                            ru = "ОШИБКА - Не удалось переименовать текущий скрипт в .old"
+                            en = "ERROR - Could not rename the current script to .old.",
+                            ru = "ОШИБКА - Не удалось переименовать текущий скрипт в .old."
                         },
                         ["err_rename_failed"] = {
                             en = "ERROR - Failed to rename the current script: %s",
                             ru = "ОШИБКА - Не удалось переименовать текущий скрипт: %s"
                         },
                         ["err_update_failed_restored"] = {
-                            en = "Failed to apply the update. Old version was restored.",
+                            en = "Failed to apply update. The old version was restored.",
                             ru = "Не удалось применить обновление. Старая версия восстановлена."
                         },
                         ["err_critical_restore_failed"] = {
-                            en = "CRITICAL ERROR - Restoring the old script failed: %s",
+                            en = "CRITICAL ERROR - Failed to restore the old script: %s",
                             ru = "КРИТИЧЕСКАЯ ОШИБКА - Не удалось восстановить старый скрипт: %s"
                         }
                     }
@@ -194,7 +194,6 @@ if enable_autoupdate then
                 self:debug(string.format("Language detection failed, returning default language: %s", defaultLanguage))
                 return defaultLanguage, 0
             end
-
             function ScriptUpdater:log(...)
                 local args = {...}
                 for i, v in ipairs(args) do
@@ -207,7 +206,11 @@ if enable_autoupdate then
                 if not self.cfg_debug_enabled then
                     return
                 end
-                self:log(...)
+                local args = {...}
+                for i, v in ipairs(args) do
+                    args[i] = tostring(v)
+                end
+                print(string.format("%s{808080}[DEBUG]: {ffffff}%s", self.cfg_log_prefix, table.concat(args, ", ")))
             end
 
             function ScriptUpdater:message(...)
@@ -388,30 +391,40 @@ if enable_autoupdate then
                 if not file then
                     error(string.format("Could not open script file: %s", tostring(err)))
                 end
-                
-                -- Read file in chunks to handle large files more efficiently
+
                 local chunk_size = 4096
                 local content = ""
                 local pattern = 'script_version%("([^"]+)"%)'
-                
-                while true do
-                    wait(100)
-                    self:debug("Reading new script file chunk")
-                    local chunk = file:read(chunk_size)
-                    if not chunk then break end
-                    content = content .. chunk
-                    
-                    local version = string.match(content, pattern)
-                    if version then
-                        file:close()
-                        self:debug(string.format("Found script version: %s", version))
-                        return version
+
+                local success, version =
+                    pcall(
+                    function()
+                        while true do
+                            self:debug("Reading new script file chunk")
+                            local chunk = file:read(chunk_size)
+                            if not chunk then
+                                break
+                            end
+                            content = content .. chunk
+
+                            local version = string.match(content, pattern)
+                            if version then
+                                self:debug(string.format("Found script version: %s", version))
+                                return version
+                            end
+                        end
                     end
-                end
-                
+                )
+
                 file:close()
+
+                if not success then
+                    self:debug(string.format("Error occurred while reading file: %s", tostring(version)))
+                    error(version)
+                end
+
                 self:debug("No script version found in file")
-                return nil
+                return version
             end
 
             function ScriptUpdater:check()
@@ -619,6 +632,7 @@ if enable_autoupdate then
 
                                     local rename_old_to_current_success, rename_restore_err = os.rename(path_for_old_script, thisScript().path)
                                     if rename_old_to_current_success then
+                                        self:debug(string.format(".old script renamed to current path: %s", thisScript().path))
                                         error(self:getMessage("err_update_failed_restored"))
                                     else
                                         self:debug(string.format("Failed to restore the old script: %s", tostring(rename_restore_err)))
@@ -673,7 +687,10 @@ if enable_autoupdate then
                     end
 
                     started_downloader = os.clock()
-                    table.insert(self.downloader_ids, downloadUrlToFile(self.cached_json_data.updateurl, path_for_new_script, downloader_handler_file))
+                    table.insert(
+                        self.downloader_ids,
+                        downloadUrlToFile(self.cached_json_data.updateurl, path_for_new_script, downloader_handler_file)
+                    )
                     self:debug("Script download initiated")
                 end
 
@@ -804,7 +821,7 @@ if enable_autoupdate then
         -- If you set this to false, the script will not check for new version and will not auto-update
         -- Default: true
         -- you can delete this line
-        ScriptUpdater.cfg_check_new_file = false
+        ScriptUpdater.cfg_check_new_file = true
 
         -- If os.clock() (game uptime) exceeds this value, the update check will be aborted at the beginning of the check
         -- This is to prevent update checks during ctrl+r reload spam, which can cause game crashes on 026
@@ -836,7 +853,7 @@ function main()
     if updater_loaded and enable_autoupdate and ScriptUpdater then
         ScriptUpdater:debug("Initiating ScriptUpdater.check")
         local success, result = pcall(ScriptUpdater.check, ScriptUpdater)
-        print("ScriptUpdater result:", success, result)
+        ScriptUpdater:log("ScriptUpdater result:", success, result)
         ScriptUpdater:debug(string.format("ScriptUpdater.check executed with success: %s, result: %s", tostring(success), tostring(result)))
     else
         ScriptUpdater:debug("Auto-update not enabled or ScriptUpdater not loaded")
