@@ -48,8 +48,8 @@ if enable_autoupdate then
                 i18n = {
                     data = {
                         ["msg_new_version_available"] = {
-                            en = "New version is available! Trying to update from %s to %s!",
-                            ru = "Новая версия доступна! Пытаемся обновиться с %s до %s!",
+                            en = "{FFD700}New version is available! Trying to update from {FFFFFF}v%s{FFD700} to {FFFFFF}v%s",
+                            ru = "{FFD700}Новая версия доступна! Пытаемся обновиться с {FFFFFF}v%s{FFD700} до {FFFFFF}v%s",
                         },
                         ["msg_timeout_while_checking_for_updates"] = {
                             en = "Timeout while checking for updates. Please check manually at %s.",
@@ -670,7 +670,7 @@ if enable_autoupdate then
                 started_stage2 = os.clock()
                 self:debug(string.format("Starting stage 2: Do we need it? %s", tostring(need_stage2)))
                 if need_stage2 and self.json_data then
-                    self:message(string.format("{FFD700}%s", string.format(self:getMessage("msg_new_version_available"), thisScript().version, self.json_data.latest)))
+                    self:message(string.format(self:getMessage("msg_new_version_available"), thisScript().version, self.json_data.latest))
                     handle_script_download()
                     wait_for_script_download()
                 end
