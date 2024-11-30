@@ -100,12 +100,12 @@ if enable_autoupdate then
                             ru = "ОШИБКА - Версия нового файла совпадает с текущей. Попробуйте позже."
                         },
                         ["err_version_not_found"] = {
-                            en = "{ff0000}New script version not found in the new file.",
-                            ru = "{ff0000}Версия скрипта не найдена в новом файле."
+                            en = "{ff0000}WARNING - New script version not found in the new file.",
+                            ru = "{ff0000}WARNING - Версия скрипта не найдена в новом файле."
                         },
                         ["err_rename_current"] = {
-                            en = "ERROR - Could not rename the current script to .old.",
-                            ru = "ОШИБКА - Не удалось переименовать текущий скрипт в .old."
+                            en = "ERROR - Could not rename the current script to .old",
+                            ru = "ОШИБКА - Не удалось переименовать текущий скрипт в .old"
                         },
                         ["err_rename_failed"] = {
                             en = "ERROR - Failed to rename the current script: %s",
@@ -116,8 +116,8 @@ if enable_autoupdate then
                             ru = "Не удалось применить обновление. Старая версия восстановлена."
                         },
                         ["err_critical_restore_failed"] = {
-                            en = "CRITICAL ERROR - Failed to restore the old script: %s",
-                            ru = "КРИТИЧЕСКАЯ ОШИБКА - Не удалось восстановить старый скрипт: %s"
+                            en = "CRITICAL ERROR - Failed to restore the old script",
+                            ru = "КРИТИЧЕСКАЯ ОШИБКА - Не удалось восстановить старый скрипт"
                         }
                     }
                 }
@@ -649,7 +649,7 @@ if enable_autoupdate then
                                         error(self:getMessage("err_update_failed_restored"))
                                     else
                                         self:debug(string.format("Failed to restore the old script: %s", tostring(rename_restore_err)))
-                                        error(string.format(self:getMessage("err_critical_restore_failed"), tostring(rename_restore_err)))
+                                        error(self:getMessage("err_critical_restore_failed"))
                                     end
                                 end
                             end
