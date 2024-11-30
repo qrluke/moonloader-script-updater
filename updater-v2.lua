@@ -87,6 +87,10 @@ if enable_autoupdate then
                             en = "Script successfully updated. Reloading...",
                             ru = "Скрипт успешно обновлен. Перезагрузка..."
                         },
+                        ["err_decode_json"] = {
+                            en = "{ff0000}ERROR - Failed to decode JSON. Aborting update...",
+                            ru = "{ff0000}ОШИБКА - Не удалось декодировать JSON. Отмена обновления..."
+                        },
                         ["err_download_failed"] = {
                             en = "ERROR - Download failed. Aborting update...",
                             ru = "ОШИБКА - Загрузка не удалась. Отмена обновления..."
@@ -506,26 +510,31 @@ if enable_autoupdate then
                             end
                         )
                         if status then
-                            self.cached_json_data = result
-
-                            local is_update_available = self.cached_json_data.latest ~= thisScript().version
-                            self:debug(
-                                string.format(
-                                    "Current script version: %s, Latest version from JSON: %s",
-                                    thisScript().version,
-                                    self.cached_json_data.latest
-                                )
-                            )
-
-                            if not is_update_available then
-                                self:log(string.format("{00FF00}%s", self:getMessage("msg_already_latest_version")))
-                            end
-
-                            if is_update_available then
-                                self:debug("Newer version detected, preparing for stage 2 update")
-                                need_stage2 = true
+                            if not result then
+                                self:message(self:getMessage("err_decode_json"))
+                                self:debug(string.format("JSON decode failed: %s", tostring(result)))
                             else
-                                self:debug("No newer version detected, ending update check")
+                                self.cached_json_data = result
+
+                                local is_update_available = self.cached_json_data.latest ~= thisScript().version
+                                self:debug(
+                                    string.format(
+                                        "Current script version: %s, Latest version from JSON: %s",
+                                        thisScript().version,
+                                        self.cached_json_data.latest
+                                    )
+                                )
+
+                                if not is_update_available then
+                                    self:log(string.format("{00FF00}%s", self:getMessage("msg_already_latest_version")))
+                                end
+
+                                if is_update_available then
+                                    self:debug("Newer version detected, preparing for stage 2 update")
+                                    need_stage2 = true
+                                else
+                                    self:debug("No newer version detected, ending update check")
+                                end
                             end
                         else
                             self:message(string.format(self:getMessage("msg_update_json_failure"), remove_path_from_error(result)))
