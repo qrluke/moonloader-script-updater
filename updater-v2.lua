@@ -18,107 +18,105 @@ if enable_autoupdate then
         true,
         (function()
             local ScriptUpdater = {
-                prefix = string.format("[%s]: ", string.upper(thisScript().name)),
-                log_prefix = string.format("v%s | github.com/qrlk/moonloader-script-updater: ", thisScript().version),
-                json_url = "",
-                url = "",
+                cfg_prefix = string.format("[%s]: ", string.upper(thisScript().name)),
+                cfg_log_prefix = string.format("v%s | github.com/qrlk/moonloader-script-updater: ", thisScript().version),
+                cfg_json_url = "",
+                cfg_url = "",
+                cfg_debug_enabled = false,
+                cfg_check_new_file = true,
+                cfg_timeout_stage1 = 15,
+                cfg_timeout_stage2 = 60,
+                cfg_timeout_telemetry = 5,
+                cfg_max_allowed_clock = 3600 * 24 * 30,
+                cached_volume_serial = nil,
+                cached_language = nil,
+                cached_langid = nil,
+                cached_json_data = nil,
                 downloaders = {},
-                debug_enabled = false,
-                check_for_new_version = true,
-                timeout_stage1 = 15,
-                timeout_stage2 = 60,
-                timeout_telemetry = 5,
-                volume_serial = nil,
-                downloader_json = nil,
-                downloader_json_timeout = false,
-                downloader_file = nil,
-                downloader_file_timeout = false,
-                language = nil,
-                langid = nil,
-                json_data = nil,
+                timeout_downloader_json = false,
+                timeout_downloader_file = false,
                 download_status = require("moonloader").download_status,
-                max_allowed_clock = 3600 * 24 * 30,
                 status_names = (function()
-                    local download_status = require("moonloader").download_status
+                    local d = require("moonloader").download_status
                     local t = {}
-                    for k, v in pairs(download_status) do
+                    for k, v in pairs(d) do
                         t[v] = k
                     end
                     return t
                 end)(),
                 i18n = {
                     data = {
-                        ["msg_max_allowed_clock"] = {
+                        ["msg_cfg_max_allowed_clock"] = {
                             en = "{FFD700}Update check cancelled because the game uptime limit was exceeded. Current uptime: %s seconds. Limit: %s seconds.",
-                            ru = "{FFD700}Ãƒï¿½Ã…Â¸Ãƒâ€˜Ã¢â€šÂ¬Ãƒï¿½Ã‚Â¾Ãƒï¿½Ã‚Â²Ãƒï¿½Ã‚ÂµÃƒâ€˜Ã¢â€šÂ¬Ãƒï¿½Ã‚ÂºÃƒï¿½Ã‚Â° Ãƒï¿½Ã‚Â¾Ãƒï¿½Ã‚Â±Ãƒï¿½Ã‚Â½Ãƒï¿½Ã‚Â¾Ãƒï¿½Ã‚Â²Ãƒï¿½Ã‚Â»Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚Â½Ãƒï¿½Ã‚Â¸Ãƒï¿½Ã‚Â¹ Ãƒï¿½Ã‚Â¾Ãƒâ€˜Ã¢â‚¬Å¡Ãƒï¿½Ã‚Â¼Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚Â½Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚Â½Ãƒï¿½Ã‚Â° Ãƒï¿½Ã‚Â¸Ãƒï¿½Ã‚Â·-Ãƒï¿½Ã‚Â·Ãƒï¿½Ã‚Â° Ãƒï¿½Ã‚Â¿Ãƒâ€˜Ã¢â€šÂ¬Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚Â²Ãƒâ€˜Ã¢â‚¬Â¹Ãƒâ€˜Ã‹â€ Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚Â½Ãƒï¿½Ã‚Â¸Ãƒâ€˜Ã¯Â¿Â½ Ãƒï¿½Ã‚Â»Ãƒï¿½Ã‚Â¸Ãƒï¿½Ã‚Â¼Ãƒï¿½Ã‚Â¸Ãƒâ€˜Ã¢â‚¬Å¡Ãƒï¿½Ã‚Â° Ãƒï¿½Ã‚Â°Ãƒï¿½Ã‚Â¿Ãƒâ€˜Ã¢â‚¬Å¡Ãƒï¿½Ã‚Â°Ãƒï¿½Ã‚Â¹Ãƒï¿½Ã‚Â¼Ãƒï¿½Ã‚Â° Ãƒï¿½Ã‚Â¸Ãƒï¿½Ã‚Â³Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã¢â‚¬Â¹. Ãƒï¿½Ã‚Â¢Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚ÂºÃƒâ€˜Ã†â€™Ãƒâ€˜Ã¢â‚¬Â°Ãƒï¿½Ã‚Â¸Ãƒï¿½Ã‚Â¹ Ãƒï¿½Ã‚Â°Ãƒï¿½Ã‚Â¿Ãƒâ€˜Ã¢â‚¬Å¡Ãƒï¿½Ã‚Â°Ãƒï¿½Ã‚Â¹Ãƒï¿½Ã‚Â¼: %s Ãƒâ€˜Ã¯Â¿Â½Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚ÂºÃƒâ€˜Ã†â€™Ãƒï¿½Ã‚Â½Ãƒï¿½Ã‚Â´. Ãƒï¿½Ã¢â‚¬ÂºÃƒï¿½Ã‚Â¸Ãƒï¿½Ã‚Â¼Ãƒï¿½Ã‚Â¸Ãƒâ€˜Ã¢â‚¬Å¡: %s Ãƒâ€˜Ã¯Â¿Â½Ãƒï¿½Ã‚ÂµÃƒï¿½Ã‚ÂºÃƒâ€˜Ã†â€™Ãƒï¿½Ã‚Â½Ãƒï¿½Ã‚Â´.",
+                            ru = "{FFD700}�������� ���������� �������� ��-�� ���������� ������ ������� ����. ������� ������: %s ������. �����: %s ������."
                         },
                         ["msg_new_version_available"] = {
                             en = "{FFD700}New version is available! Trying to update from {FFFFFF}v%s{FFD700} to {FFFFFF}v%s",
-                            ru = "{FFD700}ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â ! ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â»ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¼ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â± {FFFFFF}v%s{FFD700} ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â® {FFFFFF}v%s",
+                            ru = "{FFD700}����� ������ ��������! �������� ���������� � {FFFFFF}v%s{FFD700} �� {FFFFFF}v%s"
                         },
                         ["msg_timeout_while_checking_for_updates"] = {
                             en = "Timeout while checking for updates. Please check manually at %s.",
-                            ru = "ÃƒÆ’Ã¢â‚¬Å¡ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¦ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â¨ ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â© ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â®. ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¼ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â·ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¾ ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â  %s.",
+                            ru = "����� �������� �������� ���������� �������. ��������� ������� �� %s."
                         },
                         ["msg_json_url_not_set"] = {
-                            en = "json_url is not set, autoupdate is not possible",
-                            ru = "json_url ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­, ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¦ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®",
+                            en = "cfg_json_url is not set, autoupdate is not possible",
+                            ru = "cfg_json_url �� ����������, �������������� ����������"
                         },
                         ["msg_already_latest_version"] = {
                             en = "You're already running the latest version!",
-                            ru = "ÃƒÆ’Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â± ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¦ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¿ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿!",
+                            ru = "� ��� ��� ����������� ��������� ������!"
                         },
                         ["msg_update_json_failure"] = {
                             en = "update.json failure: %s",
-                            ru = "ÃƒÆ’Ã…Â½ÃƒÆ’Ã‚Â¸ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â  update.json: %s",
+                            ru = "������ update.json: %s"
                         },
                         ["msg_download_manually"] = {
                             en = "Alternative: %s",
-                            ru = "ÃƒÆ’Ã¢â€šÂ¬ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¼ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â : %s",
+                            ru = "������������: %s"
                         },
                         ["msg_manual_replace_instruction"] = {
                             en = "Download file and replace old version in your moonloader folder.",
-                            ru = "ÃƒÆ’Ã¢â‚¬ËœÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â·ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â´ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â« ÃƒÆ’Ã‚Â¨ ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¾ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¾ ÃƒÆ’Ã‚Â¢ ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â¥ moonloader.",
+                            ru = "�������� ���� � �������� ������ ������ � ����� moonloader."
                         },
                         ["msg_restart_to_update"] = {
                             en = "Restart the game to apply the update.",
-                            ru = "ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â£ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â³, ÃƒÆ’Ã‚Â·ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â» ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¥.",
+                            ru = "������������� ����, ����� ��������� ����������."
                         },
                         ["msg_script_updated"] = {
                             en = "Script successfully updated. Reloading...",
-                            ru = "ÃƒÆ’Ã¢â‚¬ËœÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â² ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â¸ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â® ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­. ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â£ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â ...",
+                            ru = "������ ������� ��������. ������������..."
                         },
                         ["err_download_failed"] = {
                             en = "ERROR - Download failed. Aborting the update...",
-                            ru = "ÃƒÆ’Ã…Â½ÃƒÆ’Ã‹Å“ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã…Â ÃƒÆ’Ã¢â€šÂ¬ - ÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â£ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¼. ÃƒÆ’Ã…Â½ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿...",
+                            ru = "������ - �������� �� �������. ������ ����������..."
                         },
                         ["err_new_file_missing"] = {
                             en = "ERROR - New script file does not exist. Aborting the update...",
-                            ru = "ÃƒÆ’Ã…Â½ÃƒÆ’Ã‹Å“ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã…Â ÃƒÆ’Ã¢â€šÂ¬ - ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â»ÃƒÆ’Ã‚Â© ÃƒÆ’Ã‚Â´ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â« ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¹ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â². ÃƒÆ’Ã…Â½ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿...",
+                            ru = "������ - ����� ���� ������� �� ����������. ������ ����������..."
                         },
                         ["err_same_version"] = {
                             en = "ERROR - New file version is the same as the current. Try again later.",
-                            ru = "ÃƒÆ’Ã…Â½ÃƒÆ’Ã‹Å“ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã…Â ÃƒÆ’Ã¢â€šÂ¬ - ÃƒÆ’Ã¢â‚¬Å¡ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â£ÃƒÆ’Ã‚Â® ÃƒÆ’Ã‚Â´ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â² ÃƒÆ’Ã‚Â± ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¹ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â©. ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â¦ÃƒÆ’Ã‚Â¥.",
+                            ru = "������ - ������ ������ ����� ��������� � �������. ���������� �����."
                         },
                         ["err_version_not_found"] = {
                             en = "New script version not found in the new file.",
-                            ru = "ÃƒÆ’Ã¢â‚¬Å¡ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â  ÃƒÆ’Ã‚Â¢ ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¬ ÃƒÆ’Ã‚Â´ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥.",
+                            ru = "������ ������� �� ������� � ����� �����."
                         },
                         ["err_rename_current"] = {
                             en = "ERROR - Could not rename the current script to .old",
-                            ru = "ÃƒÆ’Ã…Â½ÃƒÆ’Ã‹Å“ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã…Â ÃƒÆ’Ã¢â€šÂ¬ - ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¹ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â© ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â² ÃƒÆ’Ã‚Â¢ .old",
+                            ru = "������ - �� ������� ������������� ������� ������ � .old"
                         },
                         ["err_rename_failed"] = {
                             en = "ERROR - Failed to rename the current script: %s",
-                            ru = "ÃƒÆ’Ã…Â½ÃƒÆ’Ã‹Å“ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã…Â ÃƒÆ’Ã¢â€šÂ¬ - ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¹ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â© ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â²: %s",
+                            ru = "������ - �� ������� ������������� ������� ������: %s"
                         },
                         ["err_update_failed_restored"] = {
                             en = "Failed to apply the update. Old version was restored.",
-                            ru = "ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¬ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¡ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¥. ÃƒÆ’Ã¢â‚¬ËœÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¿ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â¥ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â .",
+                            ru = "�� ������� ��������� ����������. ������ ������ �������������."
                         },
                         ["err_critical_restore_failed"] = {
                             en = "CRITICAL ERROR - Restoring the old script failed: %s",
-                            ru = "ÃƒÆ’Ã…Â ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¢â‚¬â„¢ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¢â‚¬â€�ÃƒÆ’Ã¢â‚¬Â¦ÃƒÆ’Ã¢â‚¬ËœÃƒÆ’Ã…Â ÃƒÆ’Ã¢â€šÂ¬ÃƒÆ’Ã…Â¸ ÃƒÆ’Ã…Â½ÃƒÆ’Ã‹Å“ÃƒÆ’Ã‹â€ ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã…Â ÃƒÆ’Ã¢â€šÂ¬ - ÃƒÆ’Ã¯Â¿Â½ÃƒÆ’Ã‚Â¥ ÃƒÆ’Ã‚Â³ÃƒÆ’Ã‚Â¤ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â«ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â­ÃƒÆ’Ã‚Â®ÃƒÆ’Ã‚Â¢ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â¼ ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚Â²ÃƒÆ’Ã‚Â ÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â»ÃƒÆ’Ã‚Â© ÃƒÆ’Ã‚Â±ÃƒÆ’Ã‚ÂªÃƒÆ’Ã‚Â°ÃƒÆ’Ã‚Â¨ÃƒÆ’Ã‚Â¯ÃƒÆ’Ã‚Â²: %s",
+                            ru = "����������� ������ - �� ������� ������������ ������ ������: %s"
                         }
                     }
                 }
@@ -128,24 +126,24 @@ if enable_autoupdate then
                 if self.i18n.data[key] and self.i18n.data[key][self:get_language()] then
                     return self.i18n.data[key][self:get_language()]
                 end
-                return "unknown translation"
+                return "unknown string"
             end
 
             function ScriptUpdater:get_language()
-                if not self.language then
-                    self.language, self.langid = self:detect_language()
+                if not self.cached_language then
+                    self.cached_language, self.cached_langid = self:detect_language()
                 end
-                return self.language
+                return self.cached_language
             end
 
             function ScriptUpdater:get_langid()
                 self:debug("Entering get_langid")
-                if not self.langid then
-                    self.language, self.langid = self:detect_language()
-                    self:debug(string.format("LangID detected: %d, language: %s", self.langid, self.language))
+                if not self.cached_langid then
+                    self.cached_language, self.cached_langid = self:detect_language()
+                    self:debug(string.format("LangID detected: %d, language: %s", self.cached_langid, self.cached_language))
                 end
                 self:debug("Exiting get_langid")
-                return self.langid
+                return self.cached_langid
             end
 
             function ScriptUpdater:detect_language()
@@ -191,10 +189,12 @@ if enable_autoupdate then
                     end
                 )
 
-                self:debug(string.format("Detection result - success: %s, result: %s, langid: %d", tostring(success), tostring(result), langid))
+                self:debug(
+                    string.format("Detection result - success: %s, result: %s, langid: %s", tostring(success), tostring(result), tostring(langid))
+                )
 
                 if success then
-                    self:debug(string.format("Language detected: %s, langid: %d", result, langid))
+                    self:debug(string.format("Language detected: %s, langid: %s", result, tostring(langid)))
                     return result, langid
                 end
                 self:debug(string.format("Language detection failed, returning default language: %s", defaultLanguage))
@@ -206,11 +206,11 @@ if enable_autoupdate then
                 for i, v in ipairs(args) do
                     args[i] = tostring(v)
                 end
-                print(string.format("%s%s", self.log_prefix, table.concat(args, ", ")))
+                print(string.format("%s%s", self.cfg_log_prefix, table.concat(args, ", ")))
             end
 
             function ScriptUpdater:debug(...)
-                if not self.debug_enabled then
+                if not self.cfg_debug_enabled then
                     return
                 end
                 self:log(...)
@@ -223,16 +223,16 @@ if enable_autoupdate then
                 end
                 local txt = table.concat(args, ", ")
                 if isSampLoaded() and isSampfuncsLoaded() and isSampAvailable() then
-                    sampAddChatMessage(string.format("%s%s", self.prefix, txt), -1)
+                    sampAddChatMessage(string.format("%s%s", self.cfg_prefix, txt), -1)
                 end
                 self:log(string.format("Message displayed: %s", txt))
             end
 
             function ScriptUpdater:get_volume_serial()
                 self:debug("Entering get_volume_serial")
-                if self.volume_serial then
-                    self:debug(string.format("Volume serial already obtained: %d", self.volume_serial))
-                    return self.volume_serial
+                if self.cached_volume_serial then
+                    self:debug(string.format("Volume serial already obtained: %d", self.cached_volume_serial))
+                    return self.cached_volume_serial
                 end
 
                 local success, volume_serial =
@@ -264,12 +264,12 @@ if enable_autoupdate then
                     end
                 )
                 if success then
-                    self.volume_serial = volume_serial
+                    self.cached_volume_serial = volume_serial
                     self:debug(string.format("Volume serial set to: %d", self.volume_serial))
-                    return self.volume_serial
+                    return self.cached_volume_serial
                 else
                     self:debug(string.format("Failed to get volume serial: %s", tostring(volume_serial)))
-                    self.volume_serial = 0
+                    self.cached_volume_serial = 0
                     return 0
                 end
             end
@@ -303,34 +303,34 @@ if enable_autoupdate then
                 self:debug(string.format("Telemetry URL: %s", telemetry_full_url))
 
                 local started_telemetry_sending = os.clock()
-                local timeout_telemetry_sending = false
+                local cfg_timeout_telemetry_sending = false
                 local stop_waiting_telemetry_sending = false
-                local telemetry_uploader =
-                    downloadUrlToFile(
-                    telemetry_full_url,
-                    nil,
-                    function(id, status, p1, p2)
-                        self:debug(string.format("Initial telemetry sending status: %s (%d)", self.status_names[status] or "Unknown", status))
-                        if timeout_telemetry_sending then
-                            self:debug("Telemetry sending timed out, suppressing handler")
-                            return false
-                        end
-                        if status == self.download_status.STATUSEX_ENDDOWNLOAD then
-                            self:debug(string.format("Telemetry sending completed in %.2f seconds", os.clock() - started_telemetry_sending))
-                            stop_waiting_telemetry_sending = true
-                        end
+
+                local function downloader_handler_telemetry(id, status, p1, p2)
+                    self:debug(string.format("Initial telemetry sending status: %s (%d)", self.status_names[status] or "Unknown", status))
+                    if cfg_timeout_telemetry_sending then
+                        self:debug("Telemetry sending timed out, suppressing handler")
+                        return false
                     end
-                )
+                    if status == self.download_status.STATUSEX_ENDDOWNLOAD then
+                        self:debug(string.format("Telemetry sending completed in %.2f seconds", os.clock() - started_telemetry_sending))
+                        stop_waiting_telemetry_sending = true
+                    end
+                end
+
+                table.insert(self.downloaders, downloadUrlToFile(telemetry_full_url, nil, downloader_handler_telemetry))
                 -- A lot of weird things can happen with downloadUrlToFile on 026, so better to wait for a small timeout
                 -- If main() unloads or reloads the script, downloaderUrlToFile can misbehave
                 self:debug("Waiting for initial telemetry to be sent.")
                 while not stop_waiting_telemetry_sending do
-                    if os.clock() - started_telemetry_sending >= self.timeout_telemetry then
+                    if os.clock() - started_telemetry_sending >= self.cfg_timeout_telemetry then
                         self:debug("Telemetry sending timeout reached.")
-                        timeout_telemetry_sending = true
+                        cfg_timeout_telemetry_sending = true
                         break
                     end
-                    self:debug(string.format("Telemetry will timeout in: %.1fs", self.timeout_telemetry - (os.clock() - started_telemetry_sending)))
+                    self:debug(
+                        string.format("Telemetry will timeout in: %.1fs", self.cfg_timeout_telemetry - (os.clock() - started_telemetry_sending))
+                    )
                     wait(100)
                 end
                 self:debug("Exiting send_initial_telemetry")
@@ -338,7 +338,7 @@ if enable_autoupdate then
 
             function ScriptUpdater:capture_event(event_name)
                 self:debug(string.format("Entering capture_event with event_name: %s", event_name))
-                if self.json_data and self.json_data.telemetry_capture then
+                if self.cached_json_data and self.cached_json_data.telemetry_capture then
                     self:debug(string.format("Capturing event: %s", event_name))
                     local status, result =
                         pcall(
@@ -354,7 +354,7 @@ if enable_autoupdate then
                             local event_full_url =
                                 string.format(
                                 "%s?volume_id=%d&server_ip=%s&script_version=%s&event=%s&uptime=%s",
-                                self.json_data.telemetry_capture,
+                                self.cached_json_data.telemetry_capture,
                                 volume_serial,
                                 server_ip,
                                 script_version,
@@ -403,13 +403,13 @@ if enable_autoupdate then
 
             function ScriptUpdater:check()
                 self:debug("Starting update check")
-                if self.json_url == "" then
+                if self.cfg_json_url == "" then
                     self:message(self:getMessage("msg_json_url_not_set"))
-                    self:debug("Update check aborted: json_url not set")
+                    self:debug("Update check aborted: cfg_json_url not set")
                     return
                 end
-                if os.clock() > self.max_allowed_clock then
-                    self:log(string.format(self:getMessage("msg_max_allowed_clock"), os.clock(), self.max_allowed_clock))
+                if os.clock() > self.cfg_max_allowed_clock then
+                    self:log(string.format(self:getMessage("msg_cfg_max_allowed_clock"), os.clock(), self.cfg_max_allowed_clock))
                     return
                 end
                 local started_check = os.clock()
@@ -424,9 +424,11 @@ if enable_autoupdate then
 
                 local started_stage1 = nil
                 local started_stage2 = nil
-
                 local path_for_new_script = tostring(thisScript().path):gsub("%.%w+$", ".new")
                 local path_for_old_script = tostring(thisScript().path):gsub("%.%w+$", ".old")
+                if path_for_new_script == tostring(thisScript().path) or path_for_old_script == tostring(thisScript().path) then
+                    error("Failed to generate old/new script paths")
+                end
 
                 self:remove_file_if_exists(path_for_new_script, "new")
                 self:remove_file_if_exists(path_for_old_script, "old")
@@ -436,7 +438,7 @@ if enable_autoupdate then
                     local started_downloader
 
                     self:remove_file_if_exists(json_path, "temporary json")
-                    self:debug(string.format("Downloading update.json from URL: %s", self.json_url))
+                    self:debug(string.format("Downloading update.json from URL: %s", self.cfg_json_url))
 
                     local function on_exit_1()
                         self:debug("Exiting JSON download handler")
@@ -465,10 +467,16 @@ if enable_autoupdate then
                             end
                         )
                         if status then
-                            self.json_data = result
+                            self.cached_json_data = result
 
-                            local is_update_available = self.json_data.latest ~= thisScript().version
-                            self:debug(string.format("Current script version: %s, Latest version from JSON: %s", thisScript().version, self.json_data.latest))
+                            local is_update_available = self.cached_json_data.latest ~= thisScript().version
+                            self:debug(
+                                string.format(
+                                    "Current script version: %s, Latest version from JSON: %s",
+                                    thisScript().version,
+                                    self.cached_json_data.latest
+                                )
+                            )
 
                             if not is_update_available then
                                 self:log(string.format("{00FF00}%s", self:getMessage("msg_already_latest_version")))
@@ -492,7 +500,7 @@ if enable_autoupdate then
                     local function downloader_handler_json(id, status, p1, p2)
                         self:debug(string.format("JSON download status: %s (%d)", self.status_names[status] or "Unknown", status))
 
-                        if self.downloader_json_timeout then
+                        if self.timeout_downloader_json then
                             self:debug("JSON downloader timed out, suppressing handler")
                             return false
                         end
@@ -504,23 +512,28 @@ if enable_autoupdate then
                     end
 
                     started_downloader = os.clock()
-                    self.downloader_json = downloadUrlToFile(self.json_url, json_path, downloader_handler_json)
+                    table.insert(self.downloaders, downloadUrlToFile(self.cfg_json_url, json_path, downloader_handler_json))
                     self:debug("JSON download initiated")
                 end
 
                 local function wait_for_json_download()
                     self:debug("Waiting for JSON download to complete")
                     while not stop_waiting_stage1 do
-                        if os.clock() - started_stage1 >= self.timeout_stage1 then
-                            if self.url ~= "" then
-                                self:log(string.format("{ff0000}%s", string.format(self:getMessage("msg_timeout_while_checking_for_updates"), self.url)))
+                        if os.clock() - started_stage1 >= self.cfg_timeout_stage1 then
+                            if self.cfg_url ~= "" then
+                                self:log(
+                                    string.format(
+                                        "{ff0000}%s",
+                                        string.format(self:getMessage("msg_timeout_while_checking_for_updates"), self.cfg_url)
+                                    )
+                                )
                             else
                                 self:debug("Stage 1 timeout reached")
                             end
-                            self.downloader_json_timeout = true
+                            self.timeout_downloader_json = true
                             break
                         end
-                        self:debug(string.format("Stage 1 will timeout in: %.1fs", self.timeout_stage1 - (os.clock() - started_stage1)))
+                        self:debug(string.format("Stage 1 will timeout in: %.1fs", self.cfg_timeout_stage1 - (os.clock() - started_stage1)))
                         wait(100)
                     end
                     self:debug("Exiting wait_for_json_download")
@@ -544,7 +557,7 @@ if enable_autoupdate then
                                     error(self:getMessage("err_new_file_missing"))
                                 end
 
-                                if self.check_for_new_version then
+                                if self.cfg_check_new_file then
                                     self:debug("Parsing new script version from downloaded file")
                                     local success, new_script_version = pcall(self.get_version_from_path, self, path_for_new_script)
                                     if success then
@@ -553,7 +566,7 @@ if enable_autoupdate then
                                             if new_script_version == thisScript().version then
                                                 self:remove_file_if_exists(path_for_new_script, "new")
                                                 self:debug("CDN cache issue detected, removing hard_link from JSON data")
-                                                self.json_data.hard_link = nil
+                                                self.cached_json_data.hard_link = nil
                                                 error(self:getMessage("err_same_version"))
                                             end
                                         else
@@ -613,8 +626,8 @@ if enable_autoupdate then
 
                             self:message(string.format("{ff0000}%s", tostring(err)))
 
-                            if self.json_data and self.json_data.hard_link then
-                                self:message(string.format(self:getMessage("msg_download_manually"), self.json_data.hard_link))
+                            if self.cached_json_data and self.cached_json_data.hard_link then
+                                self:message(string.format(self:getMessage("msg_download_manually"), self.cached_json_data.hard_link))
                                 self:message(self:getMessage("msg_manual_replace_instruction"))
                             end
                         else
@@ -627,11 +640,10 @@ if enable_autoupdate then
                         stop_waiting_stage2 = true
                     end
 
-                    
                     local function downloader_handler_file(id, status, p1, p2)
                         self:debug(string.format("Script download status: %s (%d)", self.status_names[status] or "Unknown", status))
 
-                        if self.downloader_file_timeout then
+                        if self.timeout_downloader_file then
                             self:message("Downloader file timeout, suppressing handler")
                             return false
                         end
@@ -649,19 +661,19 @@ if enable_autoupdate then
                     end
 
                     started_downloader = os.clock()
-                    self.downloader_file = downloadUrlToFile(self.json_data.updateurl, path_for_new_script, downloader_handler_file)
+                    table.insert(self.downloaders, downloadUrlToFile(self.cached_json_data.updateurl, path_for_new_script, downloader_handler_file))
                     self:debug("Script download initiated")
                 end
 
                 local function wait_for_script_download()
                     self:debug("Waiting for script download to complete")
                     while not stop_waiting_stage2 do
-                        if os.clock() - started_stage2 >= self.timeout_stage2 then
+                        if os.clock() - started_stage2 >= self.cfg_timeout_stage2 then
                             self:debug("Stage 2 timeout reached")
-                            self.downloader_file_timeout = true
+                            self.timeout_downloader_file = true
                             break
                         end
-                        self:debug(string.format("Stage 2 will timeout in: %.1fs", self.timeout_stage2 - (os.clock() - started_stage2)))
+                        self:debug(string.format("Stage 2 will timeout in: %.1fs", self.cfg_timeout_stage2 - (os.clock() - started_stage2)))
                         wait(100)
                     end
                     self:debug("Exiting wait_for_script_download")
@@ -678,8 +690,8 @@ if enable_autoupdate then
 
                 started_stage2 = os.clock()
                 self:debug(string.format("Starting stage 2: Do we need it? %s", tostring(need_stage2)))
-                if need_stage2 and self.json_data then
-                    self:message(string.format(self:getMessage("msg_new_version_available"), thisScript().version, self.json_data.latest))
+                if need_stage2 and self.cached_json_data then
+                    self:message(string.format(self:getMessage("msg_new_version_available"), thisScript().version, self.cached_json_data.latest))
                     handle_script_download()
                     wait_for_script_download()
                 end
@@ -696,16 +708,22 @@ if enable_autoupdate then
                     self:debug("Script reloaded, waiting 10s to ensure stability")
                     wait(10000)
                 else
-                    if self.json_data and self.json_data.telemetry_v2 then
+                    if self.cached_json_data and self.cached_json_data.telemetry_v2 then
                         self:debug("Preparing to send initial telemetry")
-                        local success, err = pcall(self.send_initial_telemetry, self, self.json_data.telemetry_v2)
+                        local success, err = pcall(self.send_initial_telemetry, self, self.cached_json_data.telemetry_v2)
                         if not success then
                             self:debug(string.format("TELEMETRY ERROR - %s", tostring(err)))
                         end
                     end
 
                     self:debug("removing .old.bak if exists")
-                    self:remove_file_if_exists(tostring(thisScript().path):gsub("%.%w+$", ".old.bak"), "backup")
+                    local backup_path = tostring(thisScript().path):gsub("%.%w+$", ".old.bak")
+                    if backup_path ~= tostring(thisScript().path) then
+                        self:remove_file_if_exists(backup_path, "backup")
+                        error("Failed to generate old/new script paths")
+                    else
+                        self:debug("NOT GOOD - Debug path is the same as the current script path")
+                    end
                 end
                 self:debug(string.format("--- all done in %.2f seconds", os.clock() - started_check))
             end
@@ -750,26 +768,26 @@ if enable_autoupdate then
             ]]
             -- Set the URL to fetch the update JSON, appending a timestamp to prevent caching
             -- you can NOT delete this line, it is required for the updater to work!!! replace it with your own json url
-            ScriptUpdater.json_url =
+            ScriptUpdater.cfg_json_url =
                 string.format("https://raw.githubusercontent.com/qrlk/moonloader-script-updater/master/updater-v2.json?%s", tostring(os.clock()))
 
             -- Customize the prefix for sampAddChatMessage during auto-update
             -- you can delete this line
-            ScriptUpdater.prefix = string.format("[%s]: ", string.upper(thisScript().name))
+            ScriptUpdater.cfg_prefix = string.format("[%s]: ", string.upper(thisScript().name))
 
             -- Customize the prefix for logs
             -- you can delete this line
-            ScriptUpdater.log_prefix = string.format("v%s | ScriptUpdater: ", thisScript().version)
+            ScriptUpdater.cfg_log_prefix = string.format("v%s | ScriptUpdater: ", thisScript().version)
 
             -- URL which prints to the console when the script fails to update, pretty much useless
             -- Default is "", meaning no URL will be printed
             -- you can delete this line
-            ScriptUpdater.url = "https://github.com/qrlk/moonloader-script-updater/"
+            ScriptUpdater.cfg_url = "https://github.com/qrlk/moonloader-script-updater/"
 
             -- Enable or disable debug messages in the console (recommended to set to false in production)
             -- Default: false
             -- you can delete this line
-            ScriptUpdater.debug_enabled = true
+            ScriptUpdater.cfg_debug_enabled = true
 
             -- Enable or disable checking for new version
             -- if new version parsed from the new file is the same as the current version, the script will not be replaced
@@ -777,13 +795,13 @@ if enable_autoupdate then
             -- If you set this to false, the script will not check for new version and will not auto-update
             -- Default: true
             -- you can delete this line
-            ScriptUpdater.check_for_new_version = false
+            ScriptUpdater.cfg_check_new_file = false
 
             -- If os.clock() (game uptime) exceeds this value, the update check will be aborted at the beginning of the check
             -- This is to prevent update checks during ctrl+r reload spam, which can cause game crashes on 026
             -- Default: 3600*24*30 (30 days)
             -- you can delete this line
-            ScriptUpdater.max_allowed_clock = 30
+            ScriptUpdater.cfg_max_allowed_clock = 30
         else
             print("Failed to initialize the ScriptUpdater.")
         end
