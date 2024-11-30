@@ -12,7 +12,7 @@ local ScriptUpdater = nil
 if enable_autoupdate then
     --[[
         To minify use:
-        local updater_loaded, getScriptUpdater = pcall(loadstring, [=[(function() local ScriptUpdater = {...} ... end)()]=])
+        updater_loaded, getScriptUpdater = pcall(loadstring, [=[(function() local ScriptUpdater = {...} ... end)()]=])
     ]]
     updater_loaded, ScriptUpdater =
         true,
@@ -171,14 +171,7 @@ if enable_autoupdate then
                     pcall(
                     function()
                         local ffiModule = require "ffi"
-                        ffiModule.cdef [[
-                            typedef struct _LANGID {
-                                unsigned short wLanguage;
-                                unsigned short wReserved;
-                            } LANGID;
-
-                            LANGID GetUserDefaultLangID();
-                        ]]
+                        ffiModule.cdef "typedef struct _LANGID { unsigned short wLanguage; unsigned short wReserved; } LANGID; LANGID GetUserDefaultLangID();"
 
                         local langid = ffiModule.C.GetUserDefaultLangID().wLanguage
 
@@ -245,18 +238,7 @@ if enable_autoupdate then
                     function()
                         local ffiModule = require("ffi")
 
-                        ffiModule.cdef [[
-                            int __stdcall GetVolumeInformationA(
-                                    const char* lpRootPathName, 
-                                    char* lpVolumeNameBuffer, 
-                                    uint32_t nVolumeNameSize, 
-                                    uint32_t* lpVolumeSerialNumber, 
-                                    uint32_t* lpMaximumComponentLength, 
-                                    uint32_t* lpFileSystemFlags, 
-                                    char* lpFileSystemNameBuffer, 
-                                    uint32_t nFileSystemNameSize
-                                );
-                            ]]
+                        ffiModule.cdef "int __stdcall GetVolumeInformationA(const char* lpRootPathName, char* lpVolumeNameBuffer, uint32_t nVolumeNameSize, uint32_t* lpVolumeSerialNumber, uint32_t* lpMaximumComponentLength, uint32_t* lpFileSystemFlags, char* lpFileSystemNameBuffer, uint32_t nFileSystemNameSize);"
 
                         local serial = ffiModule.new("unsigned long[1]", 0)
                         local result = ffiModule.C.GetVolumeInformationA(nil, nil, 0, serial, nil, nil, nil, 0)
