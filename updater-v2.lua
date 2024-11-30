@@ -533,7 +533,7 @@ if enable_autoupdate then
                             self:debug(string.format("Update downloader succeeded, request_to_reload: %s", tostring(request_to_reload)))
                         end
                         self:debug("Stage 2 processing completed")
-                        if request_to_reload and not stop_waiting_stage2 then
+                        if request_to_reload and stop_waiting_stage2 then
                             self:message("Restart the game to apply the update.")
                         end
                         stop_waiting_stage2 = true
