@@ -67,8 +67,8 @@ if enable_autoupdate then
                             ru = "У вас уже установлена последняя версия!"
                         },
                         ["msg_update_json_failure"] = {
-                            en = "update.json failure: %s",
-                            ru = "Ошибка update.json: %s"
+                            en = "{ff0000}update.json failure: %s",
+                            ru = "{ff0000}Ошибка update.json: %s"
                         },
                         ["msg_download_manually"] = {
                             en = "Alternative: %s",
@@ -459,6 +459,15 @@ if enable_autoupdate then
                 self:remove_file_if_exists(path_for_new_script, "new")
                 self:remove_file_if_exists(path_for_old_script, "old")
 
+                local function remove_path_from_error(err)
+                    local error_msg = tostring(err)
+                    error_msg = error_msg:match(".*:.*:(.*)") -- This will match everything after the last colon
+                    if error_msg then
+                        return error_msg:match("^%s*(.-)%s*$") -- Trim whitespace
+                    end
+                    return error_msg
+                end
+
                 local function handle_json_download()
                     self:debug("Handling JSON download")
                     local started_downloader
@@ -515,7 +524,7 @@ if enable_autoupdate then
                                 self:debug("No newer version detected, ending update check")
                             end
                         else
-                            self:message(string.format(self:getMessage("msg_update_json_failure"), tostring(result)))
+                            self:message(string.format(self:getMessage("msg_update_json_failure"), remove_path_from_error(result)))
                             self:debug(string.format("JSON download failed: %s", tostring(result)))
                         end
                         self:debug("Stage 1 processing completed")
@@ -537,7 +546,7 @@ if enable_autoupdate then
                     end
 
                     started_downloader = os.clock()
-                    table.insert(self.downloader_ids, downloadUrlToFile(self.cfg_json_url, nil, downloader_handler_json))
+                    table.insert(self.downloader_ids, downloadUrlToFile(self.cfg_json_url, json_path, downloader_handler_json))
                     self:debug("JSON download initiated")
                 end
 
@@ -644,13 +653,7 @@ if enable_autoupdate then
 
                         if not success then
                             self:debug(string.format("Update downloader failure: %s", tostring(err)))
-                            local error_msg = tostring(err)
-                            error_msg = error_msg:match(".*:.*:(.*)") -- This will match everything after the last colon
-                            if error_msg then
-                                err = error_msg:match("^%s*(.-)%s*$") -- Trim whitespace
-                            end
-
-                            self:message(string.format("{ff0000}%s", tostring(err)))
+                            self:message(string.format("{ff0000}%s", remove_path_from_error(err)))
 
                             if self.cached_json_data and self.cached_json_data.hard_link then
                                 self:message(string.format(self:getMessage("msg_download_manually"), self.cached_json_data.hard_link))
